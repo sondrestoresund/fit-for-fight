@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mission Benchmarks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 256 256%22><text y=%22.9em%22 font-size=%22200%22>🏋️</text></svg>">
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0b1620;--bg2:#101922;--card:#161b23;--ink:#e7ecf4;--muted:#95a1b1;--grid:rgba(231,236,244,.08);--accent:#2db9a2;--chip:rgba(255,255,255,.06);--ring:rgba(45,185,162,.35);--prospect:#6fc2d0;--std:#79c389;--strong:#f3c355;--elite:#6aa9ff;--max:#ff6aa9}
+  *{box-sizing:border-box}html,body{height:100%}
+  body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:radial-gradient(1200px 700px at 75% -10%, rgba(45,185,162,.10), transparent 50%),linear-gradient(180deg, var(--bg2), var(--bg)),repeating-linear-gradient(135deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px)}
+  a{color:#2db9a2;text-decoration:none}
+  header.appbar{position:sticky;top:0;z-index:20;background:rgba(13,22,32,.9);backdrop-filter:blur(6px);border-bottom:1px solid var(--grid)}
+  .appbar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 16px}
+  .brand{display:flex;align-items:center;gap:10px}.brand .mark{width:28px;height:28px;border-radius:6px;background:conic-gradient(#2db9a2,#35e0c2)}.brand .name{font:700 18px "Roboto Condensed";letter-spacing:.6px;text-transform:uppercase}
+  .tabs{display:flex;gap:8px;margin-left:16px;flex:1;overflow:auto}
+  .chip{padding:8px 12px;border:1px solid var(--grid);border-radius:999px;background:var(--chip);font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer}
+  .chip.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
+  .profile{margin-left:auto;position:relative}
+  .profile-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--grid);border-radius:10px;background:#0f1620;cursor:pointer}
+  .profile-dd{display:none;position:absolute;right:0;top:48px;background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:12px;width:320px;z-index:30}
+  .profile-dd.show{display:block}
+  .profile-dd .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .profile-dd label{font-size:12px;color:var(--muted)}
+  .profile-dd input,.profile-dd select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--grid);background:#0f1620;color:var(--ink)}
+  .profile-dd .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  .btn{padding:10px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),#35e0c2);color:#0b1311;font-weight:800;cursor:pointer}
+  .btn.secondary{background:#0f1620;color:var(--ink);border:1px solid var(--grid)}
+  .container{max-width:1200px;margin:18px auto;padding:0 16px}
+  .panel{background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .panel h2{margin:0 0 12px;font:700 18px "Roboto Condensed";letter-spacing:.4px;text-transform:uppercase;position:relative}
+  .panel h2:after{content:"";position:absolute;left:0;bottom:-6px;width:100%;height:2px;background:repeating-linear-gradient(90deg,rgba(231,236,244,.15) 0 24px, transparent 24px 36px)}
+  .grid{display:grid;gap:12px}.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr 1fr}
+  @media (max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+  .login-wrap{display:grid;grid-template-columns:380px 1fr;gap:16px}@media (max-width:1000px){.login-wrap{grid-template-columns:1fr}}
+  .hero{border-radius:14px;min-height:300px;background-size:cover;background-position:center;border:1px solid var(--grid);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.55))}
+  .hero-content{position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;justify-content:flex-end}
+  .hero h1{margin:0;font:800 28px/1.1 Inter}
+  .muted{color:var(--muted);font-size:14px}
+  .badge{font:700 11px "Roboto Condensed";text-transform:uppercase;letter-spacing:.4px;padding:4px 10px;border-radius:6px;background:var(--chip);display:inline-block}
+  .b-prospect{background:rgba(111,194,208,.22);color:#062027}.b-std{background:rgba(121,195,137,.22);color:#04170b}.b-strong{background:rgba(243,195,85,.22);color:#2b1f00}.b-elite{background:rgba(106,169,255,.22);color:#001733}.b-max{background:rgba(255,106,169,.22);color:#2a0012}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--chip)}
+  .t-prospect{background:#6fc2d0;color:#052027}.t-std{background:#79c389;color:#06210f}.t-strong{background:#f3c355;color:#3b2900}.t-elite{background:#6aa9ff;color:#001533}.t-max{background:#ff6aa9;color:#3a001a}
+  table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--grid);padding:10px;text-align:left;font-size:14px;vertical-align:top}th{color:var(--muted);font:700 12px "Roboto Condensed";letter-spacing:.3px;text-transform:uppercase}
+  td small{color:var(--muted)}.rowbtn{width:auto;padding:8px 10px;border-radius:8px;border:1px solid var(--grid);background:#0e1620;color:var(--ink);cursor:pointer}.rowbtn:hover{border-color:var(--accent)}
+  canvas{background:#0f1620;border-radius:12px;border:1px solid var(--grid)}
+  .ring{display:flex;gap:12px;align-items:center;background:var(--chip);border:1px solid var(--grid);border-radius:12px;padding:10px}
+  .ring .dial{--pct:0;--clr:var(--accent);width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--clr) calc(var(--pct)*1%), rgba(255,255,255,.08) 0);position:relative}
+  .ring .dial::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#0f1620;border:1px solid var(--grid)}
+  .ring .meta{display:flex;flex-direction:column}.ring .big{font:800 20px/1 Inter}.ring .lbl{font:700 12px "Roboto Condensed";text-transform:uppercase;color:var(--muted)}
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);align-items:center;justify-content:center;z-index:9999}
+  .modal-card{background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  #levelsToast{display:none;position:fixed;left:16px;bottom:16px;background:#161b23;border:1px solid rgba(231,236,244,.12);border-radius:10px;padding:12px 14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .view{display:none}.view.show{display:block}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-inner">
+    <div class="brand"><span class="mark"></span><span class="name">Mission Benchmarks</span></div>
+    <nav class="tabs" id="navTabs" aria-label="Primary">
+      <button class="chip" data-route="#/home">Home</button>
+      <button class="chip" data-route="#/benchmarks">Benchmarks</button>
+      <button class="chip" data-route="#/progress">Progress</button>
+      <button class="chip" data-route="#/about">About</button>
+    </nav>
+    <div class="profile" id="profileMenu" style="display:none">
+      <button class="profile-btn" id="profileBtn"><span id="profileSummary">PROFILE: -</span></button>
+      <div class="profile-dd" id="profileDropdown">
+        <div class="row"><div><label>Name</label><input id="p_name"></div><div><label>Sex</label><select id="p_sex"><option value="male">Male</option><option value="female">Female</option></select></div></div>
+        <div class="row"><div><label>Age</label><input id="p_age" type="number" min="17" max="70"></div><div><label>Age Bracket</label>
+          <select id="p_ageBracket"><option>17-26</option><option>27-30</option><option selected>31-35</option><option>36-40</option><option>41-45</option><option>46-50</option><option>51-55</option><option>56-60</option><option>61-65</option><option>66-70</option></select>
+        </div></div>
+        <div class="row"><div><label>Height (cm)</label><input id="p_height" type="number"></div><div><label>Weight (lb)</label><input id="p_weight" type="number" step="0.1"></div></div>
+        <div class="actions"><button class="btn secondary" id="openExercisePicker">Exercise selection</button><button class="btn" id="saveProfile">Save</button><button class="btn secondary" id="signOut">Sign out</button></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LOGIN + Landing -->
+<main class="container view" id="view-login">
+  <div class="login-wrap">
+    <section class="panel">
+      <h2>Log in or Create account</h2>
+      <label>Email</label><input id="authEmail" type="email" placeholder="you@example.com">
+      <label>Password</label><input id="authPass" type="password" placeholder="••••••••">
+      <div class="grid grid-2"><button class="btn" id="btnSignIn">Sign in</button><button class="btn secondary" id="btnCreate">Create account</button></div>
+      <div id="authError" class="muted" style="color:#ff9cae;margin-top:8px"></div>
+      <div class="muted" style="margin-top:8px">We use local, device-only storage for now. No guest mode.</div>
+    </section>
+    <section class="panel">
+      <div class="hero" style="background-image:url('https://images.unsplash.com/photo-1521804906057-1df8fdb718b2?q=80&w=1600&auto=format&fit=crop');">
+        <div class="hero-content"><h1>Train like a Marine. Test Day ready.</h1><p class="muted">A sleek, Marine-grade challenge app. Run the gauntlet and see where you stand.</p></div>
+      </div>
+      <div class="grid grid-3" style="margin-top:12px">
+        <div class="panel"><div class="badge b-elite">Challenge First</div><p class="muted" style="margin-top:6px">Guided Test Day flow. No fluff.</p></div>
+        <div class="panel"><div class="badge b-strong">Real Benchmarks</div><p class="muted" style="margin-top:6px">USMC-inspired anchors with age scaling.</p></div>
+        <div class="panel"><div class="badge b-prospect">Polished UX</div><p class="muted" style="margin-top:6px">Clean design and tooltips that just work.</p></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- HOME -->
+<main class="container view" id="view-home">
+  <section class="panel">
+    <h2>Home</h2>
+    <div class="grid grid-3">
+      <div class="ring"><div class="dial" id="ringOverall" style="--pct:0"></div><div class="meta"><div class="lbl">Overall</div><div class="big" id="overall">-</div></div></div>
+      <div class="ring"><div class="dial" id="ringPFT" style="--pct:0"></div><div class="meta"><div class="lbl">PFT</div><div class="big" id="pft">-</div></div></div>
+      <div class="ring"><div class="dial" id="ringCFT" style="--pct:0"></div><div class="meta"><div class="lbl">CFT</div><div class="big" id="cft">-</div></div></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:12px">
+      <div class="panel"><h2>Readiness Chart</h2><canvas id="homeChart" height="220"></canvas>
+        <div class="muted" style="margin-top:6px">Based on your selected exercises. <button class="rowbtn" id="openLevelsHome">Learn Levels</button></div>
+      </div>
+      <div class="panel"><h2>Test Day</h2><p class="muted">Run the gauntlet for your selected exercises. Log a full session in minutes.</p><button class="btn" id="startTestDay">Start Test Day</button><div id="lastSession" class="muted" style="margin-top:10px"></div></div>
+    </div>
+  </section>
+</main>
+
+<!-- BENCHMARKS -->
+<main class="container view" id="view-benchmarks">
+  <section class="panel">
+    <h2>Benchmarks</h2>
+    <div class="grid grid-3">
+      <div><label>Filter</label><select id="benchFilter"><option value="selected" selected>My selected exercises</option><option value="all">All exercises</option></select></div>
+      <div class="legend"><span class="badge b-prospect">Prospect</span><span class="badge b-std">Standard</span><span class="badge b-strong">Strong</span><span class="badge b-elite">Elite</span><span class="badge b-max">Max</span><button id="btnLevels" class="rowbtn">Levels (i)</button></div>
+      <div style="text-align:right"><button id="btnRecordInline" class="btn">Record visible entries</button></div>
+    </div>
+    <div style="margin-top:10px" class="panel">
+      <table><thead><tr><th>Category</th><th>Exercise</th><th>Prospect</th><th>Standard</th><th>Strong</th><th>Elite</th><th>Max</th><th>Your Entry</th><th>Tier</th><th>Pts</th><th>PR</th><th>Record Attempt</th></tr></thead><tbody id="tbody"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<!-- PROGRESS -->
+<main class="container view" id="view-progress">
+  <section class="panel">
+    <h2>Progress</h2>
+    <div class="grid grid-3">
+      <div><label>Exercise</label><select id="progExercise"></select></div>
+      <div><label>Best this month</label><div id="bestThisMonth" class="badge">-</div></div>
+      <div style="text-align:right"><button id="clearExercise" class="rowbtn">Clear Selected Logs</button></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:10px">
+      <div class="panel"><h2>Month view</h2><div id="calendar"></div></div>
+      <div class="panel"><h2>Last 30 days</h2><canvas id="progChart" height="220"></canvas></div>
+    </div>
+  </section>
+</main>
+
+<!-- ABOUT -->
+<main class="container view" id="view-about">
+  <section class="panel">
+    <h2>About</h2>
+    <div class="hero" style="background-image:url('https://images.unsplash.com/photo-1521804906057-1df8fdb718b2?q=80&w=1600&auto=format&fit=crop');margin-bottom:12px">
+      <div class="hero-content"><h1>Marine-inspired. Agency-grade polish.</h1><p class="muted">Designed like a recruiting showcase. Built for civilians who want the standard.</p></div>
+    </div>
+    <div class="grid grid-3">
+      <div class="panel"><div class="badge b-strong">Standards</div><p class="muted" style="margin-top:6px">Anchored to USMC test points and age scaling.</p></div>
+      <div class="panel"><div class="badge b-elite">Privacy</div><p class="muted" style="margin-top:6px">Local device storage for now. Export anytime.</p></div>
+      <div class="panel"><div class="badge b-prospect">Roadmap</div><p class="muted" style="margin-top:6px">SSO, leaderboards, training plans.</p></div>
+    </div>
+  </section>
+</main>
+
+<!-- Modals -->
+<div class="modal" id="levelsModal"><div class="modal-card" style="max-width:720px">
+  <h3>Levels – how to read your targets</h3>
+  <p class="muted">Prospect ≈ 20 pts, Standard ≈ 40, Strong ≈ 70, Elite ≈ 90, Max = 100. Interpolated so every rep/second counts.</p>
+  <div class="modal-actions"><button class="btn secondary" id="levelsClose">Close</button></div>
+</div></div>
+<div class="modal" id="pickerModal"><div class="modal-card" style="max-width:780px">
+  <h3>Select your exercises</h3><div id="pickerGroups" class="grid grid-3" style="margin-top:8px"></div>
+  <div class="modal-actions"><button class="btn secondary" id="pickerSelectAll">Select all</button><button class="btn secondary" id="pickerClear">Clear</button><button class="btn" id="pickerSave">Save</button></div>
+</div></div>
+<div class="modal" id="testModal"><div class="modal-card" style="width:min(860px,95vw);max-height:85vh;overflow:auto">
+  <h3 id="testTitle">Test Day</h3><div id="testBody"></div>
+  <div class="modal-actions"><button class="btn secondary" id="testPrev">Back</button><button class="btn secondary" id="testSkip">Skip</button><button class="btn" id="testNext">Next</button></div>
+</div></div>
+<div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
+
+<script>
+/* Helpers */
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const secs=(m,s)=>m*60+s;
+const fmtSecs=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return `${m}:${String(s).padStart(2,'0')}`;}
+function parseTimeInput(str){if(!str&&str!==0) return NaN;if(String(str).includes(":")){const [m,s]=String(str).split(":");const mm=parseInt(m,10),ss=parseInt(s,10);if(isNaN(mm)||isNaN(ss)) return NaN;return mm*60+ss;}const n=parseFloat(str);return isNaN(n)?NaN:n;}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function monthStart(d=new Date()){return new Date(d.getFullYear(),d.getMonth(),1)}
+function monthEnd(d=new Date()){return new Date(d.getFullYear(),d.getMonth()+1,0)}
+
+/* Router */
+const views={"#/login":$("#view-login"),"#/home":$("#view-home"),"#/benchmarks":$("#view-benchmarks"),"#/progress":$("#view-progress"),"#/about":$("#view-about")};
+function setActiveTab(route){$$("#navTabs .chip").forEach(ch=>ch.classList.toggle("active",ch.dataset.route===route))}
+function navigate(route){
+  const session=getSession();
+  if(!session && route!=="#/login"){location.hash="#/login";return;}
+  Object.values(views).forEach(v=>v.classList.remove("show"));
+  (views[route]||views["#/home"]).classList.add("show");
+  setActiveTab(route);
+  if(route==="#/home") renderHome();
+  if(route==="#/benchmarks") renderBenchmarks();
+  if(route==="#/progress") renderProgress();
+}
+window.addEventListener("hashchange",()=>navigate(location.hash||"#/login"));
+
+/* Storage */
+const USERS_KEY="mcfit:users",SESSION_KEY="mcfit:session",DATA_PREFIX="mcfit:data:";
+function loadUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY)||"{}")}catch{return{}}}
+function saveUsers(u){localStorage.setItem(USERS_KEY,JSON.stringify(u))}
+function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}}
+function setSession(s){localStorage.setItem(SESSION_KEY,JSON.stringify(s))}
+function dataKeyFor(uid){return DATA_PREFIX+(uid||"guest")}
+function loadUserData(uid){try{return JSON.parse(localStorage.getItem(dataKeyFor(uid))||'{"profile":{},"logs":[],"sessions":[],"selectedExercises":[]}')}catch{return{profile:{},logs:[],sessions:[],selectedExercises:[]}}}
+function saveUserData(uid,data){localStorage.setItem(dataKeyFor(uid),JSON.stringify(data))}
+function activeUID(){const s=getSession();return s?.uid||null}
+function dedupe(arr,keyFn){const seen=new Set();return arr.filter(x=>{const k=keyFn(x);if(seen.has(k)) return false;seen.add(k);return true;})}
+
+/* Auth */
+async function sha256(text){const enc=new TextEncoder().encode(text);const buf=await crypto.subtle.digest("SHA-256",enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")}
+let state=loadUserData(activeUID());
+$("#btnSignIn").addEventListener("click",async ()=>{
+  const email=$("#authEmail").value.trim().toLowerCase(), pass=$("#authPass").value;
+  const users=loadUsers(), user=users[email];
+  if(!user){$("#authError").textContent="No account for this email.";return;}
+  const passHash=await sha256(pass); if(passHash!==user.passHash){$("#authError").textContent="Incorrect password.";return;}
+  setSession({uid:user.uid,email:user.email,name:user.name}); state=loadUserData(user.uid); onLoginOrCreate();
+});
+$("#btnCreate").addEventListener("click",async ()=>{
+  const email=$("#authEmail").value.trim().toLowerCase(), pass=$("#authPass").value;
+  if(!email||!pass){$("#authError").textContent="Email and password are required.";return;}
+  const users=loadUsers(); if(users[email]){$("#authError").textContent="Account already exists.";return;}
+  const passHash=await sha256(pass); const uid="u_"+Math.random().toString(36).slice(2,10); const name=email.split("@")[0];
+  users[email]={uid,name,email,passHash}; saveUsers(users); setSession({uid,email,name});
+  const guest=loadUserData(null), existing=loadUserData(uid);
+  saveUserData(uid,{...existing,profile:{...existing.profile,...guest.profile},logs:dedupe([...(existing.logs||[]),...(guest.logs||[])],x=>`${x.date}|${x.exercise}|${x.value}`),sessions:[...(existing.sessions||[]),...(guest.sessions||[])],selectedExercises:existing.selectedExercises?.length?existing.selectedExercises:(guest.selectedExercises||[])});
+  localStorage.removeItem(dataKeyFor(null)); state=loadUserData(uid); onLoginOrCreate(true);
+});
+function onLoginOrCreate(isNew=false){
+  hydrateProfileUI(); $("#profileMenu").style.display="";
+  const needsProfile=!state.profile?.name||!state.profile?.ageBracket||!state.profile?.sex;
+  const needsSelection=!state.selectedExercises||state.selectedExercises.length===0;
+  location.hash="#/home";
+  if(isNew||needsProfile) openProfileDropdown(true);
+  if(isNew||needsSelection) openPicker(true);
+}
+$("#signOut").addEventListener("click",()=>{setSession(null);$("#profileMenu").style.display="none";Object.values(views).forEach(v=>v.classList.remove("show"));$("#view-login").classList.add("show");setActiveTab("#/login")});
+
+/* Profile UI */
+const profileBtn=$("#profileBtn"), profileDropdown=$("#profileDropdown");
+profileBtn.addEventListener("click",()=>openProfileDropdown());
+document.addEventListener("click",(e)=>{if(!profileDropdown.contains(e.target)&&e.target!==profileBtn) profileDropdown.classList.remove("show")});
+function openProfileDropdown(forceOpen=false){forceOpen?profileDropdown.classList.add("show"):profileDropdown.classList.toggle("show");hydrateProfileUI();}
+function hydrateProfileUI(){
+  const p=state.profile||{};
+  $("#p_name").value=p.name||""; $("#p_sex").value=p.sex||"male"; $("#p_age").value=p.age||""; $("#p_ageBracket").value=p.ageBracket||"31-35";
+  $("#p_height").value=p.heightCm||""; $("#p_weight").value=p.weightLb||"";
+  $("#profileSummary").textContent=`PROFILE: ${p.name||"-"}${p.age?" — "+p.age:""}${p.sex?", "+p.sex[0].toUpperCase():""}${p.heightCm?", "+p.heightCm+" cm":""}${p.weightLb?", "+p.weightLb+" lb":""}`;
+}
+$("#saveProfile").addEventListener("click",()=>{
+  const p={name:$("#p_name").value.trim(),sex:$("#p_sex").value,age:parseInt($("#p_age").value||"0",10)||undefined,ageBracket:$("#p_ageBracket").value,heightCm:parseFloat($("#p_height").value||"")||undefined,weightLb:parseFloat($("#p_weight").value||"")||undefined,unit:"lb"};
+  state.profile=p; saveUserData(activeUID(),state); hydrateProfileUI(); profileDropdown.classList.remove("show");
+});
+$("#openExercisePicker").addEventListener("click",()=>openPicker());
+
+/* Age scaling + model */
+function ageIdx(age){return ["17-26","27-30","31-35","36-40","41-45","46-50","51-55","56-60","61-65","66-70"].indexOf(age)}
+function malePullupMax(age){return [23,22,20,18,16,14,12,10,8,6][ageIdx(age)]}
+function femalePullupMax(age){return [12,12,10,9,8,7,6,5,4,3][ageIdx(age)]}
+function plankMaxByAge(age){return [secs(4,20),secs(4,0),secs(3,45),secs(3,30),secs(3,15),secs(3,0),secs(2,50),secs(2,40),secs(2,30),secs(2,20)][ageIdx(age)]}
+function threeMileMaxByAge(sex,age){const male=[secs(18,0),secs(18,5),secs(18,10),secs(18,40),secs(19,20),secs(20,0),secs(20,40),secs(21,20),secs(22,0),secs(23,0)], female=[secs(21,0),secs(21,10),secs(21,20),secs(22,0),secs(22,40),secs(23,30),secs(24,20),secs(25,20),secs(26,30),secs(27,30)];return (sex==="female"?female:male)[ageIdx(age)]}
+function threeMileStandardByAge(sex,age){const male=[secs(27,40),secs(28,0),secs(28,20),secs(29,0),secs(29,40),secs(30,30),secs(31,20),secs(32,10),secs(33,0),secs(34,0)], female=[secs(30,50),secs(31,20),secs(32,0),secs(32,40),secs(33,30),secs(34,20),secs(35,10),secs(36,0),secs(37,0),secs(38,0)];return (sex==="female"?female:male)[ageIdx(age)]}
+function withProspect(row){const p={...row}; if(p.unit==="sec"){p.prospect=Math.round(p.std*1.25)} else {p.prospect=typeof p.std==="number"?Math.max(1,Math.round(p.std*0.80)):p.std*0.80} return p}
+function r(cat,name,unit,dir,std,strong,elite,max,note){return {cat,name,unit,dir,std,strong,elite,max,note}}
+function buildModel(){
+  const sex=(state.profile?.sex)||"male"; const age=(state.profile?.ageBracket)||"31-35";
+  const pullMax=(sex==="male"?malePullupMax(age):femalePullupMax(age));
+  const plankMAX=plankMaxByAge(age);
+  const run3Max=threeMileMaxByAge(sex,age), run3Std=threeMileStandardByAge(sex,age);
+  const fiveKMax=Math.round(run3Max*(5000/4828)), fiveKStd=Math.round(run3Std*(5000/4828));
+  const puStd=sex==="male"?(ageIdx(age)<=2?5:Math.max(2,Math.floor(pullMax/4))):Math.max(1,Math.floor(pullMax/3));
+  const puStrong=Math.max(puStd+5,Math.round((pullMax+puStd)/2)-1);
+  const puElite=Math.max(puStrong+3,Math.min(pullMax-3,Math.round(pullMax*0.75)));
+  const rows=[
+    withProspect(r("Upper Body","Pull-ups (strict, dead-hang)","reps","higher",puStd,puStrong,puElite,pullMax,"Chin over bar, full lockout")),
+    withProspect(r("Upper Body","Push-ups (strict, nonstop)","reps","higher",sex==="male"?40:19,sex==="male"?60:35,sex==="male"?80:50,sex==="male"?100:60,"Strict form")),
+    withProspect(r("Upper Body","Barbell Bench Press (xBW for 2–5 reps)","xBW","higher",1.0,1.25,1.5,1.75,"Enter multiple of BW")),
+    withProspect(r("Upper Body","Ammo Can Press (30 lb, 2 min)","reps","higher",33,60,100,120,"2-minute max reps")),
+    withProspect(r("Core","Plank Hold","sec","higher",70,120,180,plankMAX,"Enter seconds")),
+    withProspect(r("Speed & Endurance","800 m Run","sec","lower",secs(4,19),secs(3,30),secs(3,0),secs(2,50),"Enter seconds")),
+    withProspect(r("Speed & Endurance","1-Mile Run","sec","lower",sex==="female"?510:450,sex==="female"?450:405,sex==="female"?390:360,sex==="female"?360:300,"Enter seconds")),
+    withProspect(r("Speed & Endurance","5K Run","sec","lower",fiveKStd,Math.round((fiveKStd+fiveKMax)/2),fiveKMax,Math.min(1020,fiveKMax),"Enter seconds")),
+    withProspect(r("Speed & Endurance","3-Mile (anchor)","sec","lower",run3Std,Math.round((run3Std+run3Max)/2),run3Max,run3Max,"USMC anchor")),
+    withProspect(r("Speed & Endurance","10K Run","sec","lower",sex==="female"?3600:3300,sex==="female"?3180:2880,sex==="female"?2820:2520,sex==="female"?2400:2100,"Enter seconds")),
+    withProspect(r("Explosive Power","Standing Long Jump","cm","higher",200,225,250,sex==="female"?260:300,"Two-foot takeoff")),
+    withProspect(r("Load & Work Capacity","Farmer’s Carry (2×50 lb DBs)","yd","higher",50,75,100,200,"Unbroken distance")),
+    withProspect(r("Load & Work Capacity","Deadlift (xBW for 8 reps)","xBW","higher",1.5,1.75,2.0,2.5,"Enter xBW achieved")),
+    withProspect(r("Load & Work Capacity","Squat (xBW for 8 reps)","xBW","higher",1.25,1.5,1.75,2.0,"Enter xBW achieved"))
+  ];
+  return rows;
+}
+
+/* Scoring */
+function tierAndPoints5(dir,val,prospect,std,strong,elite,maxv){
+  if(val==null||isNaN(val)) return {tier:"-",pts:null}; let t="Below",p=0;
+  if(dir==="higher"){
+    if(val<prospect){p=Math.max(0,20*(val/prospect));t="Below"}
+    else if(val<std){p=20+(val-prospect)/(std-prospect)*20;t="Prospect"}
+    else if(val<strong){p=40+(val-std)/(strong-std)*30;t="Standard"}
+    else if(val<elite){p=70+(val-strong)/(elite-strong)*20;t="Strong"}
+    else if(val<maxv){p=90+(val-elite)/(maxv-elite)*10;t="Elite"}
+    else {p=100;t="Max"}
+  } else {
+    if(val>prospect){p=Math.max(0,20*(prospect/val));t="Below"}
+    else if(val>std){p=20+(prospect-val)/(prospect-std)*20;t="Prospect"}
+    else if(val>strong){p=40+(std-val)/(std-strong)*30;t="Standard"}
+    else if(val>elite){p=70+(strong-val)/(strong-elite)*20;t="Strong"}
+    else if(val>maxv){p=90+(elite-val)/(elite-maxv)*10;t="Elite"}
+    else {p=100;t="Max"}
+  }
+  return {tier:t,pts:Math.round(p)};
+}
+function tierClass(t){return t==="Max"?"t-max":t==="Elite"?"t-elite":t==="Strong"?"t-strong":t==="Standard"?"t-std":t==="Prospect"?"t-prospect":""}
+
+/* Picker */
+const pickerModal=$("#pickerModal"), pickerGroups=$("#pickerGroups");
+function exerciseKey(row){return `${row.cat}|${row.name}|${row.unit}|${row.dir}`}
+function openPicker(){buildAndRenderPicker();pickerModal.style.display="flex"}
+$("#pickerSelectAll").addEventListener("click",()=>$$("#pickerGroups input[type=checkbox]").forEach(cb=>cb.checked=true))
+$("#pickerClear").addEventListener("click",()=>$$("#pickerGroups input[type=checkbox]").forEach(cb=>cb.checked=false))
+$("#pickerSave").addEventListener("click",()=>{
+  const selected=$$("#pickerGroups input[type=checkbox]:checked").map(cb=>cb.value);
+  state.selectedExercises=selected; saveUserData(activeUID(),state); pickerModal.style.display="none"; renderHome(); renderBenchmarks(); renderProgress();
+})
+pickerModal.addEventListener("click",e=>{if(e.target===pickerModal) pickerModal.style.display="none"})
+function buildAndRenderPicker(){
+  const rows=buildModel(), byCat={}; rows.forEach(r=>{(byCat[r.cat]=byCat[r.cat]||[]).push(r)});
+  pickerGroups.innerHTML="";
+  Object.entries(byCat).forEach(([cat,list])=>{
+    const card=document.createElement("div"); card.className="panel";
+    const id=cat.replace(/\W+/g,'_');
+    card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;font:700 14px 'Roboto Condensed';text-transform:uppercase">${cat}</h3><button class="rowbtn" id="toggle_${id}">Toggle</button></div><div style="margin-top:6px;display:grid;gap:6px">`+
+    list.map(r=>{const key=exerciseKey(r); const checked=state.selectedExercises?.length?state.selectedExercises.includes(key):true; return `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" value="${key}" ${checked?"checked":""}><span>${r.name}</span></label>`}).join("")+`</div>`;
+    pickerGroups.appendChild(card);
+    card.querySelector("#toggle_"+id).addEventListener("click",()=>{const cbs=card.querySelectorAll("input[type=checkbox]"); const all=Array.from(cbs).every(cb=>cb.checked); cbs.forEach(cb=>cb.checked=!all);});
+  });
+}
+
+/* Home */
+let HOME_CHART;
+function setRing(sel,score){const el=$(sel);const pct=isNaN(score)?0:Math.max(0,Math.min(100,score));el.style.setProperty("--pct",pct.toString())}
+function bestFor(row){const key=exerciseKey(row);const logs=(state.logs||[]).filter(l=>l.exercise===key);if(!logs.length) return null;let best=logs[0];for(const l of logs){if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}return best}
+function updateProfileSummary(){const p=state.profile||{};$("#profileSummary").textContent=`PROFILE: ${p.name||"-"}${p.age?" — "+p.age:""}${p.sex?", "+p.sex[0].toUpperCase():""}${p.heightCm?", "+p.heightCm+" cm":""}${p.weightLb?", "+p.weightLb+" lb":""}`}
+function filterRows(rows){const selected=state.selectedExercises&&state.selectedExercises.length?new Set(state.selectedExercises):null;return selected?rows.filter(r=>selected.has(exerciseKey(r))):rows}
+function renderHome(){
+  updateProfileSummary();
+  const rows=filterRows(buildModel());
+  const labels=rows.map(r=>r.name.split(" (")[0]);
+  const pts=rows.map(r=>{const pr=bestFor(r); if(!pr) return 0; const {pts}=tierAndPoints5(r.dir,pr.value,r.prospect,r.std,r.strong,r.elite,r.max); return pts||0;});
+  const ctx=$("#homeChart")?.getContext?.("2d");
+  if(ctx && window.Chart){
+    if(HOME_CHART) HOME_CHART.destroy();
+    HOME_CHART=new Chart(ctx,{type:"radar",data:{labels,datasets:[{label:"Your readiness",data:pts,borderWidth:2,fill:true}]},options:{scales:{r:{suggestedMin:0,suggestedMax:100}},plugins:{legend:{display:false}}}});
+  }
+  const rows2=rows; let ptsSum=0,cnt=0,pftSum=0,pftCnt=0,cftSum=0,cftCnt=0;
+  rows2.forEach(row=>{const pr=bestFor(row); if(!pr) return; const {pts}=tierAndPoints5(row.dir,pr.value,row.prospect,row.std,row.strong,row.elite,row.max); if(!isNaN(pts)){ptsSum+=pts;cnt++;} if(["Pull-ups (strict, dead-hang)","Push-ups (strict, nonstop)","Plank Hold","3-Mile (anchor)"].includes(row.name)&&!isNaN(pts)){pftSum+=pts;pftCnt++;} if(["800 m Run","Ammo Can Press (30 lb, 2 min)","Farmer’s Carry (2×50 lb DBs)"].includes(row.name)&&!isNaN(pts)){cftSum+=pts;cftCnt++;}});
+  const overall=cnt?Math.round(ptsSum/cnt):0, pft=pftCnt?Math.round(pftSum/pftCnt):0, cft=cftCnt?Math.round(cftSum/cftCnt):0;
+  $("#overall").textContent=overall||"-";$("#pft").textContent=pft||"-";$("#cft").textContent=cft||"-"; setRing("#ringOverall",overall||0); setRing("#ringPFT",pft||0); setRing("#ringCFT",cft||0);
+  const sessions=(state.sessions||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)); $("#lastSession").innerHTML=sessions[0]?`Last Test Day: <b>${sessions[0].date}</b> • Avg: <b>${sessions[0].avgPts}</b>`:"No Test Days yet.";
+}
+$("#openLevelsHome").addEventListener("click",()=>$("#levelsModal").style.display="flex");
+
+/* Benchmarks */
+const TBL=$("#tbody");
+function fmtTarget(row,val){if(row.unit==="sec") return fmtSecs(val); if(row.unit==="xBW") return Number(val).toFixed(2); return String(val)}
+function renderBenchmarks(){
+  const filter=$("#benchFilter").value||"selected"; const all=buildModel(); const rows=filter==="all"?all:filterRows(all); TBL.innerHTML="";
+  rows.forEach((row,idx)=>{const tr=document.createElement("tr"); tr.innerHTML=`<td>${row.cat}</td><td>${row.name}<br><small>${row.note||""}</small></td><td><span class="badge b-prospect">${fmtTarget(row,row.prospect)}</span></td><td><span class="badge b-std">${fmtTarget(row,row.std)}</span></td><td><span class="badge b-strong">${fmtTarget(row,row.strong)}</span></td><td><span class="badge b-elite">${fmtTarget(row,row.elite)}</span></td><td><span class="badge b-max">${fmtTarget(row,row.max)}</span></td><td id="entry-${idx}"></td><td id="tier-${idx}"><span class="tag">-</span></td><td id="pts-${idx}">-</td><td id="pr-${idx}" class="pr">-</td><td id="log-${idx}"></td>`; TBL.appendChild(tr);
+    const inp=document.createElement("input"); inp.placeholder=row.unit==="sec"?"seconds or mm:ss":(row.unit==="xBW"?"e.g. 1.50":"value"); inp.style.width="130px"; inp.addEventListener("input",()=>updateRow(idx,inp.value,row)); $("#entry-"+idx).appendChild(inp);
+    const btn=document.createElement("button"); btn.textContent="Record Attempt"; btn.className="rowbtn"; btn.addEventListener("click",()=>logAttempt(row,inp.value)); $("#log-"+idx).appendChild(btn);
+    refreshPRCell(idx,row);
+  });
+}
+$("#benchFilter").addEventListener("change",renderBenchmarks);
+$("#btnLevels").addEventListener("click",()=>$("#levelsModal").style.display="flex");
+$("#levelsClose").addEventListener("click",()=>$("#levelsModal").style.display="none");
+function updateRow(idx,raw,row){const val=row.unit==="sec"?parseTimeInput(raw):parseFloat(raw); const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max); $("#tier-"+idx).innerHTML=`<span class="tag ${tierClass(tier)}">${tier}</span>`; $("#pts-"+idx).textContent=isNaN(pts)?"-":pts}
+function logAttempt(row,raw){
+  const val=row.unit==="sec"?parseTimeInput(raw):parseFloat(raw); if(isNaN(val)){alert("Enter a valid number (or mm:ss for times) before logging.");return;}
+  const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+  const entry={date:todayISO(),exercise:exerciseKey(row),label:`${row.cat} — ${row.name}`,value:val,unit:row.unit,dir:row.dir,tier,pts};
+  state.logs.push(entry); state.logs=dedupe(state.logs,x=>`${x.date}|${x.exercise}|${x.value}`); saveUserData(activeUID(),state);
+  refreshPRByKey(row); renderHome(); renderProgress();
+}
+function refreshPRCell(idx,row){const best=bestFor(row); $("#pr-"+idx).textContent=best?((row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value)))+" on "+best.date):"-"}
+function refreshPRByKey(row){$$("#view-benchmarks tbody tr").forEach(tr=>{const name=tr.children[1]?.textContent||""; if(name.includes(row.name)){const best=bestFor(row); tr.querySelector(".pr").textContent=best?((row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value)))+" on "+best.date):"-"}})}
+
+/* Test Day wizard */
+const testModal=$("#testModal"), testBody=$("#testBody"); let testIdx=0, testRows=[], testResults=[];
+$("#startTestDay").addEventListener("click",()=>{testRows=filterRows(buildModel()); if(!testRows.length){alert("Select at least one exercise in Profile → Exercise selection.");return;} testResults=[];testIdx=0;showTestStep();testModal.style.display="flex"});
+$("#testPrev").addEventListener("click",()=>{if(testIdx>0){testIdx--;showTestStep()}}); $("#testSkip").addEventListener("click",()=>{testIdx++; if(testIdx>=testRows.length) return finishTest(); showTestStep()});
+$("#testNext").addEventListener("click",()=>{const row=testRows[testIdx];const inp=$("#testInput");const val=row.unit==="sec"?parseTimeInput(inp.value):parseFloat(inp.value);if(isNaN(val)){alert("Enter a valid number (or mm:ss for times).");return;}const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);testResults.push({date:todayISO(),exercise:exerciseKey(row),label:`${row.cat} — ${row.name}`,value:val,unit:row.unit,dir:row.dir,tier,pts});testIdx++; if(testIdx>=testRows.length) return finishTest(); showTestStep()});
+testModal.addEventListener("click",e=>{if(e.target===testModal) testModal.style.display="none"});
+function showTestStep(){const row=testRows[testIdx]; $("#testTitle").textContent=`Test Day — ${testIdx+1} of ${testRows.length}`; testBody.innerHTML=`<div class="panel"><h2>${row.name}</h2><p class="muted">${row.note||""}</p><div class="grid grid-3" style="margin-top:8px"><div><div class="badge b-prospect">Prospect: ${fmtTarget(row,row.prospect)}</div></div><div><div class="badge b-std">Standard: ${fmtTarget(row,row.std)}</div></div><div><div class="badge b-elite">Elite: ${fmtTarget(row,row.elite)}</div></div></div><label style="margin-top:10px">Enter your result</label><input id="testInput" placeholder="${row.unit==="sec"?"seconds or mm:ss":(row.unit==="xBW"?"e.g. 1.50":"value")}"></div>`}
+function finishTest(){if(!testResults.length){testModal.style.display="none";return;} state.logs.push(...testResults); const avg=Math.round(testResults.reduce((s,x)=>s+(x.pts||0),0)/testResults.length); const session={id:"s_"+Math.random().toString(36).slice(2,9),date:todayISO(),entries:testResults,avgPts:avg}; state.sessions=[...(state.sessions||[]),session]; saveUserData(activeUID(),state); testBody.innerHTML=`<div class="panel"><h2>Summary</h2><p class="muted">Average points: <b>${avg}</b> across ${testResults.length} exercises.</p><div style="margin-top:10px"><button class="btn" id="testDone">Close</button></div></div>`; $("#testDone").addEventListener("click",()=>{testModal.style.display="none";renderHome();renderProgress();renderBenchmarks()})}
+
+/* Progress */
+let PROG_CHART;
+function renderProgress(){
+  const rows=filterRows(buildModel()), sel=$("#progExercise");
+  sel.innerHTML=rows.map(r=>`<option value="${exerciseKey(r)}">${r.name}</option>`).join("");
+  if(!rows.length){$("#calendar").innerHTML="No selected exercises. Open Profile and choose some."; return;}
+  const firstKey=sel.value||exerciseKey(rows[0]); drawCalendar(); drawProgChart(firstKey); sel.addEventListener("change",e=>drawProgChart(e.target.value),{once:true});
+}
+function drawCalendar(){
+  const ms=monthStart(), me=monthEnd(); const year=ms.getFullYear(), month=ms.getMonth(), firstDow=(ms.getDay()+6)%7, days=me.getDate();
+  const sessions=(state.sessions||[]).filter(s=>{const d=new Date(s.date); return d.getFullYear()===year && d.getMonth()===month});
+  const grid=document.createElement("div"); grid.style.display="grid"; grid.style.gridTemplateColumns="repeat(7,1fr)"; grid.style.gap="6px";
+  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(d=>{const c=document.createElement("div"); c.className="muted"; c.textContent=d; grid.appendChild(c)});
+  for(let i=0;i<firstDow;i++){grid.appendChild(document.createElement("div"))}
+  for(let d=1; d<=days; d++){const cell=document.createElement("div"); cell.className="panel"; cell.style.padding="8px"; const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; const has=sessions.find(s=>s.date===dateStr); cell.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><b>${d}</b></div>${has?'<span class="badge b-strong">Test</span>':''}</div>${has?`<div class="muted" style="margin-top:6px">Avg: <b>${has.avgPts}</b></div>`:""}`; if(has){cell.style.cursor="pointer"; cell.addEventListener("click",()=>alert(\`Test Day ${dateStr}\nAverage: ${has.avgPts}\nEntries: ${has.entries.length}\`))} grid.appendChild(cell)}
+  $("#calendar").innerHTML=""; $("#calendar").appendChild(grid);
+}
+function drawProgChart(exKey){
+  const row=buildModel().find(r=>exerciseKey(r)===exKey)||filterRows(buildModel())[0]; const logs=(state.logs||[]).filter(l=>l.exercise===exKey).sort((a,b)=>a.date.localeCompare(b.date));
+  const last30=logs.filter(l=>{const d=new Date(l.date), now=new Date(); return (now-d)<=30*86400000});
+  const labels=last30.map(l=>l.date), values=last30.map(l=> l.unit==="sec"? l.value/60 : l.value);
+  const ms=monthStart(), me=monthEnd(), mlogs=logs.filter(l=>{const d=new Date(l.date); return d>=ms && d<=me});
+  if(mlogs.length){let best=mlogs[0]; mlogs.forEach(l=>{if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}); $("#bestThisMonth").textContent=row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value));} else {$("#bestThisMonth").textContent="-"}
+  const ctx=$("#progChart")?.getContext?.("2d"); if(!ctx || !window.Chart) return;
+  if(PROG_CHART) PROG_CHART.destroy();
+  PROG_CHART=new Chart(ctx,{type:"line",data:{labels,datasets:[{label:"Your Result",data:values,borderWidth:2,tension:.2}]},options:{responsive:true,scales:{y:{title:{display:true,text:row.unit==="sec"?"Minutes":(row.unit==="xBW"?"x Bodyweight":row.unit)}},x:{title:{display:true,text:"Date"}}},plugins:{legend:{display:false}}}});
+}
+
+/* Levels toast */
+(function(){const KEY="mcfit:levelsSeen"; if(localStorage.getItem(KEY)) return; const toast=$("#levelsToast"),link=$("#levelsOpenLink"),dismiss=$("#levelsDismiss"); toast.style.display="block"; link.addEventListener("click",(e)=>{e.preventDefault(); $("#levelsModal").style.display="flex"; toast.style.display="none"; localStorage.setItem(KEY,"1")}); dismiss.addEventListener("click",()=>{toast.style.display="none"; localStorage.setItem(KEY,"1")});})();
+
+/* Nav */
+$("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-route]"); if(!btn) return; location.hash=btn.dataset.route});
+
+/* Init */
+(function init(){
+  const s=getSession(); if(s) $("#profileMenu").style.display="";
+  const target=s?"#/home":"#/login"; if(!location.hash) location.hash=target; navigate(location.hash);
+})();
+</script>
+</body>
+</html>

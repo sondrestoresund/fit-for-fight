@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Fit For Fight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="https://i.imgur.com/wtiJqW5.png">
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0b1620;--bg2:#101922;--card:#161b23;--ink:#e7ecf4;--muted:#95a1b1;--grid:rgba(231,236,244,.08);--accent:#2db9a2;--chip:rgba(255,255,255,.06);--ring:rgba(45,185,162,.35);--prospect:#6fc2d0;--std:#79c389;--strong:#f3c355;--elite:#6aa9ff;--max:#ff6aa9}
+  *{box-sizing:border-box}html,body{height:100%}
+  body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:radial-gradient(1200px 700px at 75% -10%, rgba(45,185,162,.10), transparent 50%),linear-gradient(180deg, var(--bg2), var(--bg)),repeating-linear-gradient(135deg, rgba(255,255,255,.015) 0 2px, transparent 2px 6px)}
+  a{color:#2db9a2;text-decoration:none}
+  header.appbar{position:sticky;top:0;z-index:20;background:rgba(13,22,32,.9);backdrop-filter:blur(6px);border-bottom:1px solid var(--grid)}
+  .appbar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 16px}
+  .brand{display:flex;align-items:center;gap:10px}.brand .mark{width:120px;height:120px;border-radius:10px;object-fit:contain;background:none}
+  .tabs{display:flex;gap:8px;margin-left:16px;flex:1;overflow:auto}
+  .chip{padding:8px 12px;border:1px solid var(--grid);border-radius:999px;background:var(--chip);font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer}
+  .chip.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
+  .profile{margin-left:auto;position:relative}
+  .profile-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--grid);border-radius:10px;background:#0f1620;cursor:pointer;color:#2bd9b8}
+  .profile-dd{display:none;position:absolute;right:0;top:48px;background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:12px;width:320px;z-index:30}
+  .profile-dd.show{display:block}
+  .profile-dd .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .profile-dd label{font-size:12px;color:var(--muted)}
+  .profile-dd input,.profile-dd select{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--grid);background:#0f1620;color:var(--ink)}
+  .profile-dd .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  .btn{padding:10px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--accent),#35e0c2);color:#0b1311;font-weight:800;cursor:pointer}
+  .btn.secondary{background:#0f1620;color:var(--ink);border:1px solid var(--grid)}
+  .container{max-width:1200px;margin:18px auto;padding:0 16px}
+  .panel{background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .panel:hover{transform:translateY(-1px);transition:transform .18s ease, box-shadow .18s ease}
+  .panel h2{margin:0 0 12px;font:700 18px "Roboto Condensed";letter-spacing:.4px;text-transform:uppercase;position:relative}
+  .panel h2:after{content:"";position:absolute;left:0;bottom:-6px;width:100%;height:2px;background:repeating-linear-gradient(90deg,rgba(231,236,244,.15) 0 24px, transparent 24px 36px)}
+  .grid{display:grid;gap:12px}.grid-2{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr 1fr}
+  @media (max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+  .login-wrap{display:grid;grid-template-columns:380px 1fr;gap:16px}@media (max-width:1000px){.login-wrap{grid-template-columns:1fr}}
+  .hero{border-radius:14px;min-height:300px;background-size:cover;background-position:center;border:1px solid var(--grid);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.55))}
+  .hero-content{position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;justify-content:flex-end}
+  .hero h1{margin:0;font:800 28px/1.1 Inter}
+  .muted{color:var(--muted);font-size:14px}
+  /* Global selects: darker, rounded, with custom caret */
+  select{
+    width:100%;
+    padding:10px 36px 10px 12px;
+    border-radius:10px;
+    border:1px solid var(--grid);
+    background:#0f1620;
+    color:var(--ink);
+    appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 6"><path fill="%23A9BAC4" d="M4 6L0 0h8z"/></svg>');
+    background-repeat:no-repeat;background-size:8px 6px;background-position:right 12px center;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+    line-height:1.2;min-height:36px;margin-top:2px;
+    transition:border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+  }
+  select:hover{border-color:color-mix(in srgb,var(--accent) 35%, var(--grid))}
+  select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
+  /* ===== Medal Chip Component ===== */
+  :root{
+    --bg-chip:#0B1117;--bg-chip-hover:#0E141C;--text-strong:#E6F1F5;--text-subtle:#A9BAC4;--border-dim:rgba(255,255,255,.12);
+    --track:rgba(255,255,255,.08);--fill:#19D3B6;
+    --bronze-1:#8a5a2b;--bronze-2:#d6a675;--bronze-glow:#cd7f32;
+    --silver-1:#8a8f98;--silver-2:#e5e8ee;--silver-glow:#c0c0c0;
+    --gold-1:#a37b17;--gold-2:#ffe27b;--gold-glow:#ffd700;
+  }
+  .medal-row{display:flex;flex-wrap:wrap;gap:10px}
+  .medal-chip{--metal-1:var(--silver-1);--metal-2:var(--silver-2);--metal-glow:var(--silver-glow);position:relative;display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;color:var(--text-strong);background:var(--bg-chip);border:1px solid var(--border-dim);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);transition:transform .12s ease,background .12s ease,box-shadow .2s ease,border-color .2s ease;cursor:default}
+  .medal-chip:hover{background:var(--bg-chip-hover)}
+  .medal-chip:active{transform:translateY(1px)}
+  .medal-chip::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg,var(--metal-1),var(--metal-2));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.65;pointer-events:none}
+  .medal-chip.none{opacity:.6;filter:saturate(.7)}.medal-chip.none::before{opacity:.15}
+  .medal-chip.bronze{--metal-1:var(--bronze-1);--metal-2:var(--bronze-2);--metal-glow:var(--bronze-glow)}
+  .medal-chip.silver{--metal-1:var(--silver-1);--metal-2:var(--silver-2);--metal-glow:var(--silver-glow)}
+  .medal-chip.gold{--metal-1:var(--gold-1);--metal-2:var(--gold-2);--metal-glow:var(--gold-glow)}
+  .medal-ico{width:16px;height:16px;flex:0 0 16px;display:block;filter:drop-shadow(0 0 6px color-mix(in srgb, var(--metal-glow) 40%, transparent))}
+  .level-tag{font-weight:650;letter-spacing:.2px}
+  .dot{opacity:.5}
+  .medal-name{color:var(--text-subtle);text-transform:uppercase;font-weight:700;font-size:12px;letter-spacing:.4px}
+  .frac{font-variant-numeric:tabular-nums;color:var(--text-subtle)}
+  .mini{position:relative;height:6px;width:72px;border-radius:999px;overflow:hidden;background:var(--track);margin-left:6px;border:1px solid var(--border-dim)}
+  .mini>i{position:absolute;inset:0;display:block;background:linear-gradient(90deg,var(--fill),color-mix(in srgb,var(--fill) 50%,transparent));width:0%;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+  /* Per-level accent colors for the mini bar */
+  .medal-chip.lv-prospect .mini>i{background:linear-gradient(90deg,var(--prospect),color-mix(in srgb,var(--prospect) 50%,transparent))}
+  .medal-chip.lv-standard .mini>i{background:linear-gradient(90deg,var(--std),color-mix(in srgb,var(--std) 50%,transparent))}
+  .medal-chip.lv-strong .mini>i{background:linear-gradient(90deg,var(--strong),color-mix(in srgb,var(--strong) 50%,transparent))}
+  .medal-chip.lv-elite .mini>i{background:linear-gradient(90deg,var(--elite),color-mix(in srgb,var(--elite) 50%,transparent))}
+  .medal-chip.lv-max .mini>i{background:linear-gradient(90deg,var(--max),color-mix(in srgb,var(--max) 50%,transparent))}
+  .medal-chip.earned::after{content:"";position:absolute;inset:-2px;border-radius:inherit;background:radial-gradient(120px 40px at var(--sx,10%) -20%, rgba(255,255,255,.28), transparent 60%),radial-gradient(80px 30px at var(--sx,30%) -15%, rgba(255,255,255,.18), transparent 60%);pointer-events:none;animation:sweep 1.2s ease-out both}
+  @keyframes sweep{from{--sx:-20%;opacity:.0}40%{--sx:50%;opacity:.9}to{--sx:120%;opacity:0}}
+  @media (max-width:700px){.mini{display:none}}
+  #view-about .muted{color:#dfe7f1}
+  /* About visuals */
+  .about-hero{position:relative;border-radius:14px;min-height:260px;background-size:cover;background-position:center;border:1px solid var(--grid);overflow:hidden;margin-bottom:12px;background-color:#0f1620}
+  .about-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(100% 100% at 50% 0%, rgba(0,0,0,.25), rgba(0,0,0,.55));pointer-events:none}
+  .about-hero-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:16px;text-align:center;z-index:1}
+  .about-row{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin:12px 0;align-items:center}
+  @media (max-width:900px){.about-row{grid-template-columns:1fr}}
+  .side-img{position:relative;border-radius:12px;height:260px;background-size:cover;background-position:center;border:1px solid var(--grid);overflow:hidden}
+  .side-img::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.28);pointer-events:none}
+  .accent-bg{position:relative;background-size:cover;background-position:right center;background-repeat:no-repeat;border:1px solid var(--grid);background-color:#0f1620}
+  .accent-bg h3,.accent-bg p,.accent-bg li{position:relative;z-index:1}
+  .accent-bg::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg, rgba(16,25,34,.75), rgba(16,25,34,.55) 60%, rgba(16,25,34,0) 100%);border-radius:12px;pointer-events:none}
+  .accent-bg:hover{transform:none}
+  .grid-5{grid-template-columns:repeat(5,1fr)}
+  /* How it works: step titles styled like real pills */
+  .about-steps .step-title{
+    display:inline-block; padding:6px 12px; border-radius:999px;
+    font:700 13px 'Roboto Condensed'; letter-spacing:.3px;
+    color:#e7ecf4; box-shadow:0 1px 2px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08);
+    transition:filter .15s ease, box-shadow .15s ease, transform .06s ease;
+    position:relative; z-index:2; opacity:1; filter:none; /* keep highlighted at all times */
+  }
+  .about-steps .step-title:hover{ filter:brightness(.95) }
+  .about-steps .step-title:active{ transform:translateY(1px) }
+  .about-steps .step-1{ background:var(--prospect) }
+  .about-steps .step-2{ background:var(--std) }
+  .about-steps .step-3{ background:var(--strong) }
+  .about-steps .step-4{ background:var(--elite) }
+  .about-steps .step-5{ background:var(--max) }
+  .about-cta{position:relative;border-radius:14px;min-height:220px;background-size:cover;background-position:center;border:1px solid var(--grid);overflow:hidden;margin-top:12px;background-color:#0f1620}
+  .about-cta::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.6))}
+  .about-cta-inner{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;pointer-events:auto}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  /* Squad hero row */
+  .hero-squad{width:100%;height:360px;border-radius:14px;border:1px solid var(--grid);margin:0 0 12px 0;overflow:hidden;
+    background:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.35)), url('https://i.imgur.com/thQkIO5.jpg') center/cover no-repeat;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff;padding:16px}
+  .hero-squad h1{margin:0;font:800 32px/1.15 Inter}
+  .hero-squad p{margin:8px 0 0;font:400 18px/1.4 Inter;color:#e8eff6}
+  @media (max-width:700px){.hero-squad{height:260px}.hero-squad h1{font-size:24px}.hero-squad p{font-size:14px}}
+  .badge{font:700 11px "Roboto Condensed";text-transform:uppercase;letter-spacing:.4px;padding:4px 10px;border-radius:6px;background:var(--chip);display:inline-block}
+  /* Clickable exercise name link */
+  .exercise-link{text-decoration:none;border-bottom:1px dotted transparent;color:#2bd9b8;font-weight:600}
+  .exercise-link:hover{border-bottom-color:#2bd9b8}
+  .b-prospect{background:rgba(111,194,208,.22);color:var(--ink)}.b-std{background:rgba(121,195,137,.22);color:var(--ink)}.b-strong{background:rgba(243,195,85,.22);color:var(--ink)}.b-elite{background:rgba(106,169,255,.22);color:var(--ink)}.b-max{background:rgba(255,106,169,.22);color:var(--ink)}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--chip)}
+  .t-prospect{background:#6fc2d0;color:#052027}.t-std{background:#79c389;color:#06210f}.t-strong{background:#f3c355;color:#3b2900}.t-elite{background:#6aa9ff;color:#001533}.t-max{background:#ff6aa9;color:#3a001a}
+  table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--grid);padding:10px;text-align:left;font-size:14px;vertical-align:top}th{color:var(--muted);font:700 12px "Roboto Condensed";letter-spacing:.3px;text-transform:uppercase}
+  td small{color:var(--muted)}.rowbtn{width:auto;padding:8px 10px;border-radius:8px;border:1px solid var(--grid);background:#0e1620;color:var(--ink);cursor:pointer}.rowbtn:hover{border-color:var(--accent)}
+  canvas{background:#0f1620;border-radius:12px;border:1px solid var(--grid)}
+  .ring{display:flex;gap:12px;align-items:center;background:var(--chip);border:1px solid var(--grid);border-radius:12px;padding:10px;cursor:pointer}
+  .ring .dial{--pct:0;--clr:var(--accent);width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--clr) calc(var(--pct)*1%), rgba(255,255,255,.08) 0);position:relative}
+  .ring .dial::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#0f1620;border:1px solid var(--grid)}
+  .ring .meta{display:flex;flex-direction:column}.ring .big{font:800 20px/1 Inter}.ring .lbl{font:700 12px "Roboto Condensed";text-transform:uppercase;color:var(--muted)}
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);align-items:center;justify-content:center;z-index:9999}
+  .modal-card{background:var(--card);border:1px solid var(--grid);border-radius:14px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+  #levelsToast{display:none;position:fixed;left:16px;bottom:16px;background:#161b23;border:1px solid rgba(231,236,244,.12);border-radius:10px;padding:12px 14px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .view{display:none}.view.show{display:block}
+  /* --- Fix login layout --- */
+#view-login .panel label{
+  display:block;
+  margin:12px 0 6px;
+  font-weight:600;
+}
+#view-login .panel input{
+  display:block;
+  width:100%;
+  max-width:100%;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid var(--grid);
+  background:#0f1620;
+  color:var(--ink);
+  outline:none;
+}
+#view-login .grid.grid-2{
+  align-items:center;
+  gap:10px;
+}
+#view-login .panel{ max-width:520px }    /* Keeps the form a nice width */
+@media (max-width:480px){
+  #view-login .grid.grid-2 { grid-template-columns:1fr; }
+}
+/* ---------- NAV text: Marine green ---------- */
+.tabs .chip{
+  color:#2bd9b8;             /* brighter green text */
+  font-weight:700;
+}
+.tabs .chip.active{
+  border-color:#2bd9b8;
+  box-shadow:0 0 0 3px rgba(43,217,184,.30);
+}
+
+/* ---------- Level badges: more legible ---------- */
+.badge{opacity:1}
+.b-prospect{background:rgba(111,194,208,.35);color:var(--ink)}
+.b-std{background:rgba(121,195,137,.35);color:var(--ink)}
+.b-strong{background:rgba(243,195,85,.40);color:var(--ink)}
+.b-elite{background:rgba(106,169,255,.40);color:var(--ink)}
+.b-max{background:rgba(255,106,169,.40);color:var(--ink)}
+
+/* clickable legend badges */
+.level-badge{cursor:pointer;user-select:none;transition:transform .08s ease}
+.level-badge:hover{transform:translateY(-1px);}
+
+/* highlight the user’s current level cell in the table */
+.hl{
+  outline:2px solid #2bd9b8;
+  box-shadow:0 0 0 4px rgba(43,217,184,.25) inset;
+  border-radius:10px;
+}
+
+/* ---------- Home: grouped level view ---------- */
+  .level-groups{display:grid;gap:12px}
+  .level-group{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:12px}
+  .level-group h4{margin:0 0 6px;font:700 13px "Roboto Condensed";text-transform:uppercase;letter-spacing:.3px;color:var(--muted)}
+  /* Per-level colors */
+  .level-group.lvl-Prospect h4{color:var(--prospect)}
+  .level-group.lvl-Standard h4{color:var(--std)}
+  .level-group.lvl-Strong h4{color:var(--strong)}
+  .level-group.lvl-Elite h4{color:var(--elite)}
+  .level-group.lvl-Max h4{color:var(--max)}
+  .level-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .level-chip{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--grid);font-size:13px;color:var(--ink)}
+  .level-group.lvl-Prospect .level-chip{background:rgba(111,194,208,.22);border-color:rgba(111,194,208,.45);color:var(--ink)}
+  .level-group.lvl-Standard .level-chip{background:rgba(121,195,137,.22);border-color:rgba(121,195,137,.45);color:var(--ink)}
+  .level-group.lvl-Strong .level-chip{background:rgba(243,195,85,.22);border-color:rgba(243,195,85,.45);color:var(--ink)}
+  .level-group.lvl-Elite .level-chip{background:rgba(106,169,255,.22);border-color:rgba(106,169,255,.45);color:var(--ink)}
+  .level-group.lvl-Max .level-chip{background:rgba(255,106,169,.22);border-color:rgba(255,106,169,.45);color:var(--ink)}
+
+  /* Level meter */
+  .level-meter{position:relative;height:8px;border-radius:999px;background:rgba(231,236,244,.06);box-shadow:inset 0 0 0 1px var(--grid);overflow:hidden}
+  .level-meter .fill{position:absolute;left:0;top:0;bottom:0;width:0;
+    background:linear-gradient(90deg,
+      var(--prospect) 0%, var(--prospect) 20%,
+      var(--std) 20%, var(--std) 40%,
+      var(--strong) 40%, var(--strong) 70%,
+      var(--elite) 70%, var(--elite) 90%,
+      var(--max) 90%, var(--max) 100%
+    )}
+  .level-meter .tick{position:absolute;top:-3px;width:1px;height:14px;background:rgba(231,236,244,.35)}
+  .level-meter .marker{position:absolute;top:-4px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:8px solid #fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
+  .level-meter .labels{display:flex;justify-content:space-between;font:700 10px 'Roboto Condensed';color:var(--muted);margin-top:4px}
+
+  /* PR timeline chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip-sm{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--grid);font-size:12px}
+
+  /* Mobile sticky log */
+  @media (max-width:700px){
+    #stickyLogBtn{position:fixed;left:12px;right:12px;bottom:12px;z-index:50}
+  }
+
+/* ---------- Login layout tidy (if you haven’t added already) ---------- */
+#view-login .panel label{display:block;margin:12px 0 6px;font-weight:600}
+#view-login .panel input{display:block;width:100%;max-width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--grid);background:#0f1620;color:var(--ink)}
+#view-login .panel{max-width:520px}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-inner">
+    <div class="brand"><img class="mark" src="https://i.imgur.com/wtiJqW5.png" alt="Fit For Fight logo"></div>
+    <nav class="tabs" id="navTabs" aria-label="Primary">
+      <button class="chip" data-route="#/home">Home</button>
+      <button class="chip" data-route="#/benchmarks">Benchmarks</button>
+      <button class="chip" data-route="#/progress">Progress</button>
+      <button class="chip" data-route="#/fireteam">Squad</button>
+      <button class="chip" data-route="#/about">About</button>
+    </nav>
+    <div class="profile" id="profileMenu" style="display:none">
+      <button class="profile-btn" id="profileBtn"><span id="profileSummary">PROFILE: -</span></button>
+      <div class="profile-dd" id="profileDropdown">
+        <div class="row"><div><label>Name</label><input id="p_name"></div><div><label>Sex</label><select id="p_sex"><option value="male">Male</option><option value="female">Female</option></select></div></div>
+        <div class="row"><div><label>Age</label><input id="p_age" type="number" min="17" max="70"></div><div><label>Age Bracket</label>
+          <select id="p_ageBracket"><option>17-26</option><option>27-30</option><option selected>31-35</option><option>36-40</option><option>41-45</option><option>46-50</option><option>51-55</option><option>56-60</option><option>61-65</option><option>66-70</option></select>
+        </div></div>
+
+        <div class="row"><div><label>Units</label>
+          <select id="p_units"><option value="imperial" selected>Imperial (ft/in, lb)</option><option value="metric">Metric (cm, kg)</option></select>
+        </div><div></div></div>
+
+        <div class="row" id="blk_metric" style="display:none">
+          <div><label>Height (cm)</label><input id="p_height_cm" type="number"></div>
+          <div><label>Weight (kg)</label><input id="p_weight_kg" type="number" step="0.1"></div>
+        </div>
+        <div class="row" id="blk_imperial">
+          <div><label>Height (ft/in)</label>
+            <div style="display:flex; gap:8px">
+              <input id="p_height_ft" type="number" placeholder="ft" style="flex:1">
+              <input id="p_height_in" type="number" placeholder="in" style="flex:1">
+            </div>
+          </div>
+          <div><label>Weight (lb)</label><input id="p_weight_lb" type="number" step="0.1"></div>
+        </div>
+
+        <div class="row"><div><label>Share PRs with Squad</label>
+          <select id="p_share"><option value="yes" selected>Yes</option><option value="no">No</option></select>
+        </div><div></div></div>
+
+        <div class="actions"><button class="btn secondary" id="openExercisePicker">Exercise selection</button><button class="btn" id="saveProfile">Save</button><button class="btn secondary" id="signOut">Sign out</button></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LOGIN + Landing -->
+<main class="container view" id="view-login">
+  <div class="login-wrap">
+    <section class="panel">
+      <h2>Log in or Create account</h2>
+      <label>Email</label><input id="authEmail" type="email" placeholder="you@example.com">
+      <label>Password</label><input id="authPass" type="password" placeholder="••••••••">
+      <div class="grid grid-2"><button class="btn" id="btnSignIn">Sign in</button><button class="btn secondary" id="btnCreate">Create account</button></div>
+      <div id="authError" class="muted" style="color:#ff9cae;margin-top:8px"></div>
+      <div class="muted" style="margin-top:8px">We use local, device-only storage for now. No guest mode.</div>
+    </section>
+    <section class="panel">
+      <div class="hero" style="background-image:url('https://images.unsplash.com/photo-1521804906057-1df8fdb718b2?q=80&w=1600&auto=format&fit=crop');">
+        <div class="hero-content"><h1>Train like a Marine. Test Day ready.</h1><p class="muted">A sleek, Marine-grade challenge app. Run the gauntlet and see where you stand.</p></div>
+      </div>
+      <div class="grid grid-3" style="margin-top:12px">
+        <div class="panel"><div class="badge b-elite">Challenge First</div><p class="muted" style="margin-top:6px">Guided Test Day flow. No fluff.</p></div>
+        <div class="panel"><div class="badge b-strong">Real Benchmarks</div><p class="muted" style="margin-top:6px">USMC-inspired anchors with age scaling.</p></div>
+        <div class="panel"><div class="badge b-prospect">Polished UX</div><p class="muted" style="margin-top:6px">Clean design and tooltips that just work.</p></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- FIRETEAM -->
+<main class="container view" id="view-fireteam">
+  <div class="hero-squad">
+    <h1>Your Squad</h1>
+    <p>Connect with friends, push each other, and stay accountable.</p>
+  </div>
+  <section class="panel">
+    <h2>Squad</h2>
+    <div class="grid grid-3">
+      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div></div>
+      <div class="panel"><h3 style="margin:0">Add Friend</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendCode" placeholder="Enter code"><button class="btn" id="addFriend">Connect</button></div><div id="friendMsg" class="muted" style="margin-top:6px"></div></div>
+      <div class="panel"><h3 style="margin:0">Invite by Email</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendEmail" type="email" placeholder="friend@example.com"><button class="btn" id="inviteByEmail">Invite</button></div><div id="inviteMsg" class="muted" style="margin-top:6px"></div></div>
+      <div class="panel"><h3 style="margin:0">Leaderboard</h3><div id="ftLeaderboard" style="margin-top:6px" class="chips"></div></div>
+    </div>
+    <div class="panel" style="margin-top:12px"><h3 style="margin:0">PR Feed</h3><div id="ftFeed" style="margin-top:6px" class="chips"></div></div>
+    <div class="panel" style="margin-top:12px"><h3 style="margin:0">Compare</h3><div style="margin-top:6px"><select id="compareWith"></select></div><div id="compareTable" style="margin-top:8px"></div></div>
+  </section>
+</main>
+
+<!-- HOME -->
+<main class="container view" id="view-home">
+  <section class="panel">
+    
+    <div class="grid grid-3">
+      <div class="ring" id="ringCardOverall" data-kind="overall"><div class="dial" id="ringOverall" style="--pct:0"></div><div class="meta"><div class="lbl">OVERALL</div><div class="big" id="overall">-</div><div class="muted" style="max-width:320px">Combined fitness score</div></div></div>
+      <div class="ring" id="ringCardPFT" data-kind="pft"><div class="dial" id="ringPFT" style="--pct:0"></div><div class="meta"><div class="lbl">PFT</div><div class="big" id="pft">-</div><div class="muted" style="max-width:320px">Endurance and strength</div></div></div>
+      <div class="ring" id="ringCardCFT" data-kind="cft"><div class="dial" id="ringCFT" style="--pct:0"></div><div class="meta"><div class="lbl">CFT</div><div class="big" id="cft">-</div><div class="muted" style="max-width:320px">Agility and power</div></div></div>
+    </div>
+    <div class="panel" id="medalsPanel" style="margin-top:10px"><h2>Medals</h2>
+      <section class="medals">
+        <div id="medalRow" class="medal-row" aria-label="Level medals"></div>
+      </section>
+    </div>
+    <div class="grid grid-2" style="margin-top:12px">
+        <div class="panel">
+            <h2>Your Levels</h2>
+            <div id="homeLevels" class="level-groups"></div>
+            <div class="muted" style="margin-top:6px">
+              Based on your selected exercises. Click any level badge anywhere to learn what they mean.
+            </div>
+          </div>
+      <div class="panel"><h2>Next Targets</h2><div id="nextTargets" class="chips"></div><div style="height:8px"></div><h2>Squad Snapshot</h2><div id="fireteamSnap" class="chips"></div><div style="margin-top:8px"><button class="btn secondary" id="ctaAddSquad">Add Squad a Member</button></div><div style="height:8px"></div><h2>Test Day</h2><p class="muted">Run the gauntlet for your selected exercises. Log a full session in minutes.</p><button class="btn" id="startTestDay">Start Test Day</button><div id="lastSession" class="muted" style="margin-top:10px"></div>
+        <div style="margin-top:14px">
+          <h2>Quick Log</h2>
+          <div class="grid grid-3" style="align-items:end">
+            <div><label>Exercise</label><select id="quickLogExercise"></select></div>
+            <div><label>&nbsp;</label><button class="btn" id="quickLogBtn">Log Exercise</button></div>
+          </div>
+          <div class="muted" style="margin-top:6px">Pick an exercise and log a single attempt without starting a full Test Day.</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel" style="margin-top:12px"><h2>Recent PRs</h2><div id="recentPRs" class="chips"></div></div>
+  </section>
+</main>
+
+<!-- BENCHMARKS -->
+<main class="container view" id="view-benchmarks">
+  <section class="panel">
+    <h2>Benchmarks</h2>
+    <div class="grid grid-3">
+      <div><label>Filter</label><select id="benchFilter"><option value="selected" selected>My selected exercises</option><option value="all">All exercises</option></select></div>
+      <div class="legend">
+        <span class="badge b-prospect level-badge" data-level="Prospect">PROSPECT</span>
+        <span class="badge b-std level-badge" data-level="Standard">STANDARD</span>
+        <span class="badge b-strong level-badge" data-level="Strong">STRONG</span>
+        <span class="badge b-elite level-badge" data-level="Elite">ELITE</span>
+        <span class="badge b-max level-badge" data-level="Max">MAX</span>
+      </div>
+    </div>
+    <div style="margin-top:10px" class="panel">
+      <table><thead><tr><th>Category</th><th>Exercise</th><th>Prospect</th><th>Standard</th><th>Strong</th><th>Elite</th><th>Max</th><th>PR</th><th>Log Attempt</th></tr></thead><tbody id="tbody"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<!-- PROGRESS -->
+<main class="container view" id="view-progress">
+  <section class="panel">
+    <h2>Progress</h2>
+    <div class="grid grid-3">
+      <div><label>Exercise</label><select id="progExercise"></select></div>
+      <div><label>Best this month</label><div id="bestThisMonth" class="badge">-</div></div>
+      <div style="text-align:right"><button id="clearExercise" class="rowbtn">Clear Selected Logs</button></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:10px">
+      <div class="panel"><h2>Month view</h2><div id="calendar"></div></div>
+      <div class="panel"><h2>Levels & PRs</h2><div id="progMeters"></div><div style="margin-top:10px"><h3 style="margin:0">PR Timeline</h3><div id="progTimeline" class="chips" style="margin-top:6px"></div></div></div>
+    </div>
+  </section>
+</main>
+
+<!-- ABOUT -->
+<main class="container view" id="view-about">
+  <section class="panel">
+    <h2>About</h2>
+
+    <!-- 1) Hero -->
+    <div class="about-hero" style="background-image:url('assets/marines-pushups-group.jpg')">
+      <div class="about-hero-content">
+        <h1>How close are you to Marine-level fitness?</h1>
+        <button class="btn" id="aboutStartTest">Take the Test →</button>
+      </div>
+    </div>
+
+    <!-- 2) Why we exist -->
+    <div class="about-row">
+      <div>
+        <h3>Built for Real Standards</h3>
+        <p class="muted">Fit For Fight was designed to answer one simple question: “How close am I to Marine-level fitness?” We translate Marine standards into a civilian‑friendly tool — polished, simple, and focused.</p>
+      </div>
+      <div class="side-img" style="background-image:url('assets/marines-ammo-can-press.jpg')" aria-label="Ammo can press"></div>
+    </div>
+
+    <!-- 3) How it works with accent pull-up image -->
+    <div class="panel accent-bg" style="background-image:url('assets/marines-pullup.jpg')">
+      <h3 style="margin:0">How it works</h3>
+      <div class="grid grid-5 about-steps" style="margin-top:8px">
+        <div><div class="step-title step-1">1. Profile</div><p class="muted" style="color:#e7ecf4">Standards adjust automatically to your age and gender.</p></div>
+        <div><div class="step-title step-2">2. Select</div><p class="muted" style="color:#e7ecf4">Choose individual exercises or run the full Test Day.</p></div>
+        <div><div class="step-title step-3">3. Test</div><p class="muted" style="color:#e7ecf4">Log your results with our simple, set-based tracker.</p></div>
+        <div><div class="step-title step-4">4. Track</div><p class="muted" style="color:#e7ecf4">See PRs, streaks, and level meters evolve over time.</p></div>
+        <div><div class="step-title step-5">5. Your Squad</div><p class="muted" style="color:#e7ecf4">Add friends, compare progress, and keep each other accountable.</p></div>
+      </div>
+    </div>
+
+    <!-- 4) Levels system with push-up crowd side image -->
+    <div class="about-row">
+      <div class="side-img" style="background-image:url('assets/marines-pushup-focus.jpg')" aria-label="Push-up competition"></div>
+      <div>
+        <h3>The Levels System</h3>
+        <p class="muted">Every exercise maps to five levels inspired by PFT/CFT. Prospect → Standard → Strong → Elite → Max.</p>
+        <div class="level-chips" style="margin-top:6px">
+          <span class="badge b-prospect">Prospect</span>
+          <span class="badge b-std">Standard</span>
+          <span class="badge b-strong">Strong</span>
+          <span class="badge b-elite">Elite</span>
+          <span class="badge b-max">Max</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5) Why it’s different with handshake camaraderie image -->
+    <div class="about-row">
+      <div>
+        <h3>Why it’s different</h3>
+        <ul class="muted" style="line-height:1.6">
+          <li>Anchored to real, military‑grade standards.</li>
+          <li>Clean, challenge‑first UX — not a calorie log.</li>
+          <li>Community mindset: built to train together.</li>
+        </ul>
+      </div>
+      <div class="side-img" style="background-image:url('assets/marines-handshake.jpg')" aria-label="Camaraderie"></div>
+    </div>
+
+    <!-- Final CTA solid military green, no image -->
+    <div class="about-cta" style="background-image:none;background-color:#1f3a2e">
+      <div class="about-cta-inner">
+        <h2>Are you ready to see where you stand?</h2>
+        <button class="btn" id="aboutStartTest2">Take the Test Now →</button>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- Modals -->
+<div class="modal" id="levelsModal"><div class="modal-card" style="max-width:720px">
+  <h3>Levels – how to read your targets</h3>
+  <p class="muted">Prospect ≈ 20 pts, Standard ≈ 40, Strong ≈ 70, Elite ≈ 90, Max = 100. Interpolated so every rep/second counts.</p>
+  <div class="modal-actions"><button class="btn secondary" id="levelsClose">Close</button></div>
+</div></div>
+<div class="modal" id="infoModal"><div class="modal-card" style="max-width:520px">
+  <h3 id="infoTitle">Score</h3>
+  <p id="infoBody" class="muted"></p>
+  <div class="modal-actions"><button class="btn" id="infoClose">Close</button></div>
+</div></div>
+<div class="modal" id="pickerModal"><div class="modal-card" style="max-width:780px">
+  <h3>Select your exercises</h3><div id="pickerGroups" class="grid grid-3" style="margin-top:8px"></div>
+  <div class="modal-actions"><button class="btn secondary" id="pickerSelectAll">Select all</button><button class="btn secondary" id="pickerClear">Clear</button><button class="btn" id="pickerSave">Save</button></div>
+</div></div>
+<div class="modal" id="testModal"><div class="modal-card" style="width:min(860px,95vw);max-height:85vh;overflow:auto">
+  <h3 id="testTitle">Test Day</h3><div id="testBody"></div>
+  <div class="modal-actions"><button class="btn secondary" id="testPrev">Back</button><button class="btn secondary" id="testSkip">Skip</button><button class="btn" id="testNext">Next</button></div>
+</div></div>
+<!-- Log Attempt Modal -->
+<div class="modal" id="logModal"><div class="modal-card" style="max-width:600px">
+  <h3 id="logTitle" style="margin:0">Log Attempt</h3>
+  <div style="margin-top:6px"><label class="muted">Exercise</label>
+    <select id="logExerciseSelect"></select>
+  </div>
+  <div id="logSets" class="sets" style="margin-top:8px"></div>
+  <button class="rowbtn" id="logAddSet" style="margin-top:6px">+ Log Another Set</button>
+  <div style="margin-top:12px" id="logPad" class="grid" aria-label="Keypad"></div>
+  <div class="modal-actions"><button class="btn secondary" id="logCancel">Cancel</button><button class="btn" id="logSave">Save</button></div>
+</div></div>
+<div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
+
+<script>
+/* Helpers */
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+// Safe event binder: no-op if element missing
+const on=(sel,ev,fn,opts)=>{const el=$(sel); if(el) el.addEventListener(ev,fn,opts)};
+const secs=(m,s)=>m*60+s;
+const fmtSecs=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return `${m}:${String(s).padStart(2,'0')}`;}
+function parseTimeInput(str){if(!str&&str!==0) return NaN;if(String(str).includes(":")){const [m,s]=String(str).split(":");const mm=parseInt(m,10),ss=parseInt(s,10);if(isNaN(mm)||isNaN(ss)) return NaN;return mm*60+ss;}const n=parseFloat(str);return isNaN(n)?NaN:n;}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function fmtDate(iso){
+  try{const d=new Date(iso); if(!isFinite(d)) return iso; return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return iso}
+}
+function monthStart(d=new Date()){return new Date(d.getFullYear(),d.getMonth(),1)}
+function monthEnd(d=new Date()){return new Date(d.getFullYear(),d.getMonth()+1,0)}
+const lbToKg = lb => lb*0.45359237;
+const kgToLb = kg => kg/0.45359237;
+const cmToFtIn = cm => {
+  const totalIn = cm/2.54;
+  const ft = Math.floor(totalIn/12);
+  const inch = Math.round(totalIn - ft*12);
+  return {ft,inch};
+};
+const ftInToCm = (ft,inch) => (ft*12 + (inch||0)) * 2.54;
+
+// About images: set backgrounds with fallbacks if local files are missing
+function setBg(el, primary, fallback){
+  if(!el) return;
+  const img=new Image();
+  img.onload=()=>{ el.style.backgroundImage = `url('${primary}')`; };
+  img.onerror=()=>{ if(fallback) el.style.backgroundImage = `url('${fallback}')`; };
+  img.src=primary;
+}
+function setupAboutAssets(){
+  const toImgur = u => {
+    const m = String(u).match(/imgur\.com\/([A-Za-z0-9]+)/);
+    return m ? `https://i.imgur.com/${m[1]}.jpg` : u;
+  };
+  const IMG = {
+    hero: toImgur('https://imgur.com/wP2BYW1'),
+    ammo: toImgur('https://imgur.com/zPS1BpW'),
+    pullup: toImgur('https://imgur.com/k0DTih7'),
+    pushup: toImgur('https://imgur.com/26lltob'),
+    handshake: toImgur('https://imgur.com/IZQki0q'),
+    tug: toImgur('https://imgur.com/iNSLVCJ')
+  };
+  const hero=$('#view-about .about-hero');
+  setBg(hero, IMG.hero, 'https://images.unsplash.com/photo-1517963628607-235ccdd5476f?q=80&w=1600&auto=format&fit=crop');
+  const sideImgs=$$('#view-about .about-row .side-img');
+  if(sideImgs[0]) setBg(sideImgs[0], IMG.ammo, 'https://images.unsplash.com/photo-1575467677542-4375c37c54b8?q=80&w=1200&auto=format&fit=crop');
+  if(sideImgs[1]) setBg(sideImgs[1], IMG.pushup, 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?q=80&w=1200&auto=format&fit=crop');
+  if(sideImgs[2]) setBg(sideImgs[2], IMG.handshake, 'https://images.unsplash.com/photo-1502810365585-56ffa361fdcd?q=80&w=1200&auto=format&fit=crop');
+  const accent=$$('#view-about .panel.accent-bg');
+  if(accent[0]) setBg(accent[0], IMG.pullup, 'https://images.unsplash.com/photo-1528892952291-009c663ce843?q=80&w=1600&auto=format&fit=crop');
+  if(accent[1]) setBg(accent[1], IMG.tug, 'https://images.unsplash.com/photo-1520975940201-b2c3a6b6a4a6?q=80&w=1600&auto=format&fit=crop');
+  const cta=$('#view-about .about-cta');
+  setBg(cta, IMG.hero, 'https://images.unsplash.com/photo-1517963628607-235ccdd5476f?q=80&w=1600&auto=format&fit=crop');
+}
+
+const LEVEL_DESC = {
+  Prospect: "You’re showing potential but haven’t yet hit Marine standards. Keep pushing — this is where civilians become candidates.",
+  Standard: "The baseline. You’ve achieved the minimum requirements Marines must meet to pass. You can stand tall knowing you’ve reached the threshold.",
+  Strong: "Above average. You’re not just scraping by — you’re building resilience and pushing toward true Marine readiness.",
+  Elite: "The few within the few. This tier reflects the top Marines — typically the upper 15–20% of performers in the Corps.",
+  Max: "The pinnacle. You’ve hit the highest performance benchmarks Marines are tested on. This is rarefied air — you’re as good as it gets."
+};
+
+// Make any .level-badge open the modal with the matching description
+document.addEventListener("click",(e)=>{
+  const el = e.target.closest(".level-badge");
+  if(!el) return;
+  const lvl = el.dataset.level || el.textContent.trim();
+  const modal = $("#levelsModal");
+  modal.querySelector("h3").textContent = `${lvl} – level details`;
+  modal.querySelector(".modal-card p.muted")?.remove();
+  const p = document.createElement("p"); p.className="muted";
+  p.textContent = LEVEL_DESC[lvl] || "Performance tier explanation unavailable.";
+  modal.querySelector(".modal-card").insertBefore(p, modal.querySelector(".modal-actions"));
+  modal.style.display = "flex";
+});
+
+/* PR helpers */
+function isBetter(row,a,b){ if(a==null) return true; return row.dir==="higher" ? (b > a) : (b < a) }
+function extractPRTimeline(){
+  const logs = (state.logs||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const seen = new Map();
+  const prs=[];
+  for(const l of logs){
+    const row = buildModel().find(r=>exerciseKey(r)===l.exercise); if(!row) continue;
+    const best = seen.get(l.exercise);
+    if(best==null || isBetter(row,best,l.value)){ prs.push(l); seen.set(l.exercise,l.value); l.isPR=true; } else { l.isPR=!!l.isPR; }
+  }
+  return prs.slice(-12).reverse();
+}
+function weeksStreakFor(exKey){
+  const prs=(state.logs||[]).filter(l=>l.exercise===exKey && l.isPR).map(l=>l.date).sort();
+  if(!prs.length) return 0; // count consecutive weeks ending this week
+  const toWeek = d=>{const dt=new Date(d); const day=(dt.getDay()+6)%7; dt.setDate(dt.getDate()-day); dt.setHours(0,0,0,0); return dt.toISOString().slice(0,10)}
+  const weeks=[...new Set(prs.map(toWeek))].sort();
+  const thisWeek=toWeek(todayISO());
+  let count=0, cur=thisWeek;
+  for(let i=weeks.length-1;i>=0;i--){ if(weeks[i]===cur){count++; const t=new Date(cur); t.setDate(t.getDate()-7); cur=t.toISOString().slice(0,10);} else if(weeks[i] < cur){ break; } }
+  return count;
+}
+
+/* Scoring v2: standards, normalization, categories, medals */
+const LEVEL_ORDER=['prospect','standard','strong','elite','max'];
+function nameToKey(name){
+  const map={
+    'Pull-ups (strict, dead-hang)':'pullups',
+    'Push-ups (strict, nonstop)':'pushups',
+    '3-Mile (anchor)':'mile_3',
+    '1-Mile Run':'mile_1',
+    '5K Run':'run_5k',
+    '10K Run':'run_10k',
+    'Ammo Can Press (30 lb, 2 min)':'ammo_2min',
+    '800 m Run':'run_800m',
+    'Farmer’s Carry (2×50 lb DBs)':'farmers_carry',
+    'Plank Hold':'plank',
+    'Barbell Bench Press (xBW for 2–5 reps)':'bench_multbw',
+    'Deadlift (xBW for 8 reps)':'deadlift_multbw',
+    'Squat (xBW for 8 reps)':'squat_multbw',
+    'Standing Long Jump':'long_jump'
+  }; return map[name]||name.replace(/[^a-z0-9]+/gi,'_').toLowerCase();
+}
+// Exercise instructions (short, crisp). Key with nameToKey().
+const EX_INSTRUCTIONS = {
+  [nameToKey('Pull-ups (strict, dead-hang)')]: {
+    how:[
+      "Full hang: elbows locked, shoulders set (slight scap depression).",
+      "Pull until chin clears the bar—no kipping.",
+      "Lower under control to full lockout. Count only strict reps."
+    ],
+    tips:[
+      "Squeeze glutes and abs; think 'ribs down'.",
+      "Drive elbows to ribs, not chin to bar.",
+      "Use a shoulder-width or slightly narrower grip for most lifters."
+    ],
+    faults:["Half reps (no lockout)","Kipping/swinging","Neck craning to touch bar"]
+  },
+  [nameToKey('Push-ups (strict, nonstop)')]: {
+    how:[
+      "Hands under shoulders, body in one straight line.",
+      "Lower until chest is within a fist of the floor (or hits a target).",
+      "Press to full elbow lockout; no pausing on the floor."
+    ],
+    tips:["Squeeze quads and glutes","Screw hands into the floor","End set if form breaks"],
+    faults:["Hips sag/pipe","Short ROM","Head jutting forward"]
+  },
+  [nameToKey('Barbell Bench Press (xBW for 2–5 reps)')]: {
+    how:["Eyes under bar, feet planted, slight arch, scapulae retracted.","Unrack, lower to lower-sternum with forearms vertical.","Press to full lockout; keep glutes and feet glued."],
+    tips:["Consistent touch point","Stack wrist over elbow","Leg drive every rep"],
+    faults:["Bouncing","Flared elbows","Hips off bench"]
+  },
+  [nameToKey('Plank Hold')]:{
+    how:["Elbows under shoulders","Ribs down, glutes tight, quads on","Neutral neck; hold without hip drop/pike"],
+    tips:["Squeeze ~70–80%","Push floor away slightly"],
+    faults:["Sagging hips","Butt high","Breath-holding"]
+  },
+  [nameToKey('800 m Run')]:{
+    how:["Even or slight-negative split pacing.","Tall posture, quick cadence, relaxed shoulders.","Kick last 200 m."],
+    tips:["Don’t sprint the first 200 m","Short, fast strides"],
+    faults:["Out too hot","Overstriding","Arms crossing midline"]
+  },
+  [nameToKey('1-Mile Run')]:{ how:["Settle by 200 m","Steady middle, strong last 400 m"], tips:["Cadence 170–180+","Rhythmic breathing"], faults:["Surging","Overstriding","Hunched"] },
+  [nameToKey('3-Mile (anchor)')]:{ how:["Even pacing","Relaxed upper body","Negative split last mile"], tips:["Hold back in first 800 m","Focus cadence/posture"], faults:["Positive split blow-up","Head down"] },
+  [nameToKey('5K Run')]:{ how:["Lock pace by 1 km","Hold tempo through 4 km","Kick"], tips:["Run tangents","Relax jaw/hands"], faults:["Banking time early","Fading posture"] },
+  [nameToKey('10K Run')]:{ how:["Conservative first 2 km","Settle at threshold","Controlled finish"], tips:["Fuel/hydrate","Loose shoulders"], faults:["Out at 5K pace","Shallow breathing stitch"] },
+  [nameToKey('Ammo Can Press (30 lb, 2 min)')]:{ how:["Stand tall, core braced.","Press to full lockout each rep.","No leg drive—strict reps only."], tips:["Squeeze glutes/abs","Neutral wrists"], faults:["Knee drive","No lockout","Short ROM"] },
+  [nameToKey('Farmer’s Carry (2×50 lb DBs)')]:{ how:["Pick with flat back, stand tall, walk controlled.","Small quick steps.","Turn safely; no drops."], tips:["Crush handles","Pack shoulders"], faults:["Rounded back","Shrugging","Oversized steps"] },
+  [nameToKey('Standing Long Jump')]:{ how:["Feet hip-width, swing arms back.","Explode forward/up; land on two feet.","Measure to back of heel."], tips:["Full arm swing","Snap hips","Soft stable landing"], faults:["Toe drag","No arm drive","Falling forward/back"] },
+  [nameToKey('Deadlift (xBW for 8 reps)')]:{ how:["Bar over midfoot; hinge, brace, pull.","Bar close; stand tall; control down.","Neutral spine every rep."], tips:["Big brace","Push floor away"], faults:["Rounding","Yanking","Bar drifts"] },
+  [nameToKey('Squat (xBW for 8 reps)')]:{ how:["Feet shoulder-width, brace, sit between hips.","Depth at least parallel; drive up.","Knees track over toes."], tips:["Brace each rep","Control descent"], faults:["Knees cave","Heels lift","Half reps"] }
+};
+function standardsFromModel(rows){
+  const out={};
+  rows.forEach(r=>{
+    const key=nameToKey(r.name);
+    out[key]={
+      key,
+      name:r.name,
+      cat: r.cat.includes('Upper')?'Upper':(r.cat.includes('Core')?'Core':(r.cat.includes('Endurance')?'Endurance':'Load')),
+      unit: r.unit==='xBW'?'multBW':(r.unit||'reps'),
+      lowerIsBetter: r.dir==='lower',
+      thresholds:{prospect:r.prospect,standard:r.std,strong:r.strong,elite:r.elite,max:r.max}
+    };
+  });
+  return out;
+}
+function prsFromLogs(rows){
+  const prs={};
+  rows.forEach(r=>{const b=bestFor(r); prs[nameToKey(r.name)]=b?b.value:null;});
+  return prs;
+}
+function scopeKeysFromSelected(rows){
+  const selected=filterRows(rows); // already filtered by selection
+  return selected.map(r=>nameToKey(r.name));
+}
+function normalizeExerciseScore(value,cfg){
+  if(value==null) return 0;
+  const T=cfg.thresholds;
+  const meets=(v,lvl)=> cfg.lowerIsBetter ? v<=T[lvl] : v>=T[lvl];
+  if(meets(value,'max')) return 100;
+  for(let i=LEVEL_ORDER.length-2;i>=0;i--){
+    const lo=LEVEL_ORDER[i], hi=LEVEL_ORDER[i+1];
+    const loOK=meets(value,lo), hiOK=meets(value,hi);
+    if(loOK && !hiOK){
+      const base=20*(i+1);
+      const a=T[lo], b=T[hi];
+      const t=cfg.lowerIsBetter? (b-value)/(b-a) : (value-a)/(b-a);
+      return Math.max(0,Math.min(100,base+20*t));
+    }
+  }
+  return 0;
+}
+function computeCategoryScore(prs,standards,requiredKeys){
+  const n=requiredKeys.length; let sum=0,logged=0;
+  for(const key of requiredKeys){const cfg=standards[key]; const val=prs[key]??null; if(val!=null) logged++; sum+=normalizeExerciseScore(val,cfg||{});}
+  const raw=n?(sum/n):0, coverage=n?(logged/n):0; return {raw,coverage,required:n,logged};
+}
+function computeHeadlineScores(prs,standards,scoreSets){
+  const p=computeCategoryScore(prs,standards,scoreSets.pft);
+  const c=computeCategoryScore(prs,standards,scoreSets.cft);
+  const overallRaw=(p.raw+c.raw)/2;
+  const overallCoverage=(p.logged+c.logged)/(p.required+c.required||1);
+  const overall=Math.round(overallRaw*overallCoverage);
+  return {PFT:{score:Math.round(p.raw*p.coverage),raw:p.raw,coverage:p.coverage}, CFT:{score:Math.round(c.raw*c.coverage),raw:c.raw,coverage:c.coverage}, OVERALL:{score:overall,raw:overallRaw,coverage:overallCoverage}};
+}
+function achievedLevel(value,cfg){ if(value==null) return null; const T=cfg.thresholds; if(!cfg.lowerIsBetter){ if(value>=T.max) return 'max'; if(value>=T.elite) return 'elite'; if(value>=T.strong) return 'strong'; if(value>=T.standard) return 'standard'; if(value>=T.prospect) return 'prospect'; return null; } else { if(value<=T.max) return 'max'; if(value<=T.elite) return 'elite'; if(value<=T.strong) return 'strong'; if(value<=T.standard) return 'standard'; if(value<=T.prospect) return 'prospect'; return null; } }
+const LEVELS=['prospect','standard','strong','elite','max'];
+function summarizeMedals(prs,standards,scopeKeys){ const denom=scopeKeys.length||1; const counts={prospect:0,standard:0,strong:0,elite:0,max:0}; for(const key of scopeKeys){ const cfg=standards[key]; if(!cfg) continue; const lvl=achievedLevel(prs[key]??null,cfg); if(!lvl) continue; for(const L of LEVELS){ if(LEVELS.indexOf(L)<=LEVELS.indexOf(lvl)) counts[L]++; } } const medals={}; for(const L of LEVELS){ const n=counts[L], pct=n/denom; let medal=null; if(n>=1) medal='bronze'; if(pct>=0.5) medal='silver'; if(pct>=1) medal='gold'; medals[L]={medal,count:n,total:denom,pct}; } return {counts:counts, medals, total:denom}; }
+const SCORE_SETS={pft:['pullups','pushups','mile_3'], cft:['ammo_2min','run_800m','farmers_carry']};
+
+/* Medal rendering */
+const LEVEL_LABELS={prospect:'PROSPECT',standard:'STANDARD',strong:'STRONG',elite:'ELITE',max:'MAX'};
+function medalIcon(kind='silver'){
+  const gid = `g_${kind}_${Math.random().toString(36).slice(2,7)}`;
+  return `
+  <svg class="medal-ico" viewBox="0 0 24 24" aria-hidden="true">
+    <defs>
+      <linearGradient id="${gid}_metal" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" style="stop-color:var(--metal-1)"/>
+        <stop offset="100%" style="stop-color:var(--metal-2)"/>
+      </linearGradient>
+    </defs>
+    <path d="M7 2h4l1.5 3L11 7H7z" fill="color-mix(in srgb, var(--metal-1) 65%, #000)" opacity=".9"/>
+    <path d="M13 2h4l-4 5h-3z" fill="color-mix(in srgb, var(--metal-2) 65%, #000)" opacity=".9"/>
+    <circle cx="12" cy="16" r="5.5" fill="url(#${gid}_metal)" stroke="rgba(0,0,0,.35)" stroke-width=".8"/>
+    <circle cx="12" cy="16" r="4.2" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.2)" stroke-width=".6"/>
+    <path d="M12 13.4l.92 1.86 2.05.3-1.48 1.45.35 2.03L12 18.1l-1.84.97.35-2.03-1.48-1.45 2.05-.3z" fill="rgba(255,255,255,.9)" opacity=".95"/>
+  </svg>`;
+}
+function renderMedalChip(levelKey, medalData){
+  const medal=medalData.medal; const count=medalData.count??0; const total=medalData.total??0; const pct=total?Math.min(100,Math.round((count/total)*100)):0; const medalClass=medal?medal:'none'; const medalName=medal?medal.toUpperCase():'None'; const title=`${LEVEL_LABELS[levelKey]} • ${medalName} • ${count}/${total}`;
+  return `<div class=\"medal-chip ${medalClass} lv-${levelKey}\" role=\"status\" aria-label=\"${title}\" title=\"${title}\">${medalIcon(medalClass)}<span class=\"level-tag\">${LEVEL_LABELS[levelKey]}</span><span class=\"dot\">•</span><span class=\"medal-name\">${medalName}</span><span class=\"dot\">•</span><span class=\"frac\">${count}/${total}</span><span class=\"mini\" aria-hidden=\"true\"><i style=\"width:${pct}%\"></i></span></div>`;
+}
+function renderMedalRow(container, medals, earnedLevels=[]){
+  const order=['prospect','standard','strong','elite','max'];
+  container.innerHTML=order.map(k=>renderMedalChip(k, medals[k]||{medal:null,count:0,total:0})).join('');
+  earnedLevels.forEach(k=>{const el=container.children[order.indexOf(k)]; if(el){el.classList.add('earned'); setTimeout(()=>el.classList.remove('earned'),1400);}});
+}
+
+/* Router */
+const views={"#/login":$("#view-login"),"#/home":$("#view-home"),"#/benchmarks":$("#view-benchmarks"),"#/progress":$("#view-progress"),"#/fireteam":$("#view-fireteam"),"#/about":$("#view-about")};
+function setActiveTab(route){$$("#navTabs .chip").forEach(ch=>ch.classList.toggle("active",ch.dataset.route===route))}
+function navigate(route){
+  const session=getSession();
+  if(!session && route!=="#/login"){location.hash="#/login";return;}
+  Object.values(views).forEach(v=>v.classList.remove("show"));
+  (views[route]||views["#/home"]).classList.add("show");
+  setActiveTab(route);
+  if(route==="#/home") renderHome();
+  if(route==="#/benchmarks") renderBenchmarks();
+  if(route==="#/progress") renderProgress();
+  if(route==="#/fireteam") renderFireteam();
+  if(route==="#/about") setupAboutAssets();
+}
+window.addEventListener("hashchange",()=>navigate(location.hash||"#/login"));
+
+/* Storage */
+const USERS_KEY="mcfit:users",SESSION_KEY="mcfit:session",DATA_PREFIX="mcfit:data:";
+function loadUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY)||"{}")}catch{return{}}}
+function saveUsers(u){localStorage.setItem(USERS_KEY,JSON.stringify(u))}
+function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}}
+function setSession(s){localStorage.setItem(SESSION_KEY,JSON.stringify(s))}
+function dataKeyFor(uid){return DATA_PREFIX+(uid||"guest")}
+function loadUserData(uid){try{return JSON.parse(localStorage.getItem(dataKeyFor(uid))||'{"profile":{},"logs":[],"sessions":[],"selectedExercises":[]}')}catch{return{profile:{},logs:[],sessions:[],selectedExercises:[]}}}
+function saveUserData(uid,data){localStorage.setItem(dataKeyFor(uid),JSON.stringify(data))}
+function activeUID(){const s=getSession();return s?.uid||null}
+function loadFriendData(uid){try{return JSON.parse(localStorage.getItem(DATA_PREFIX+uid)||'null')}catch{return null}}
+function dedupe(arr,keyFn){const seen=new Set();return arr.filter(x=>{const k=keyFn(x);if(seen.has(k)) return false;seen.add(k);return true;})}
+
+/* Auth */
+async function sha256(text){const enc=new TextEncoder().encode(text);const buf=await crypto.subtle.digest("SHA-256",enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")}
+let state=loadUserData(activeUID());
+$("#btnSignIn").addEventListener("click",async ()=>{
+  const email=$("#authEmail").value.trim().toLowerCase(), pass=$("#authPass").value;
+  const users=loadUsers(), user=users[email];
+  if(!user){$("#authError").textContent="No account for this email.";return;}
+  const passHash=await sha256(pass); if(passHash!==user.passHash){$("#authError").textContent="Incorrect password.";return;}
+  setSession({uid:user.uid,email:user.email,name:user.name}); state=loadUserData(user.uid); onLoginOrCreate();
+});
+$("#btnCreate").addEventListener("click",async ()=>{
+  const email=$("#authEmail").value.trim().toLowerCase(), pass=$("#authPass").value;
+  if(!email||!pass){$("#authError").textContent="Email and password are required.";return;}
+  const users=loadUsers(); if(users[email]){$("#authError").textContent="Account already exists.";return;}
+  const passHash=await sha256(pass); const uid="u_"+Math.random().toString(36).slice(2,10); const name=email.split("@")[0];
+  users[email]={uid,name,email,passHash}; saveUsers(users); setSession({uid,email,name});
+  const guest=loadUserData(null), existing=loadUserData(uid);
+  saveUserData(uid,{...existing,profile:{...existing.profile,...guest.profile},logs:dedupe([...(existing.logs||[]),...(guest.logs||[])],x=>`${x.date}|${x.exercise}|${x.value}`),sessions:[...(existing.sessions||[]),...(guest.sessions||[])],selectedExercises:existing.selectedExercises?.length?existing.selectedExercises:(guest.selectedExercises||[])});
+  localStorage.removeItem(dataKeyFor(null)); state=loadUserData(uid); onLoginOrCreate(true);
+});
+function onLoginOrCreate(isNew=false){
+  hydrateProfileUI(); $("#profileMenu").style.display="";
+  const needsProfile=!state.profile?.name||!state.profile?.ageBracket||!state.profile?.sex;
+  const needsSelection=!state.selectedExercises||state.selectedExercises.length===0;
+  location.hash="#/home";
+  if(isNew||needsProfile) openProfileDropdown(true);
+  if(isNew||needsSelection) openPicker(true);
+}
+$("#signOut").addEventListener("click",()=>{setSession(null);$("#profileMenu").style.display="none";Object.values(views).forEach(v=>v.classList.remove("show"));$("#view-login").classList.add("show");setActiveTab("#/login")});
+
+/* Fireteam helpers */
+function ensureFireteam(){state.fireteam=state.fireteam||{friends:[]};}
+function inviteCode(){const s=getSession(); return s?.uid||"-"}
+function fireteamFriends(){ensureFireteam(); return state.fireteam.friends||[]}
+
+/* Profile UI */
+const profileBtn=$("#profileBtn"), profileDropdown=$("#profileDropdown");
+profileBtn.addEventListener("click",()=>openProfileDropdown());
+document.addEventListener("click",(e)=>{if(!profileDropdown.contains(e.target)&&e.target!==profileBtn) profileDropdown.classList.remove("show")});
+function openProfileDropdown(forceOpen=false){forceOpen?profileDropdown.classList.add("show"):profileDropdown.classList.toggle("show");hydrateProfileUI();}
+function hydrateProfileUI(){
+  const p=state.profile||{};
+  const units = p.unitSystem || "imperial";
+  $("#p_units").value = units;
+
+  $("#p_name").value=p.name||"";
+  $("#p_sex").value=p.sex||"male";
+  $("#p_age").value=p.age||"";
+  $("#p_ageBracket").value=p.ageBracket||"31-35";
+  $("#p_share").value = (p.sharePRs===false?"no":"yes");
+
+  if(units==="metric"){
+    $("#blk_metric").style.display="";
+    $("#blk_imperial").style.display="none";
+    $("#p_height_cm").value = (p.heightCm||"");
+    $("#p_weight_kg").value = p.weightLb ? Math.round(lbToKg(p.weightLb)*10)/10 : "";
+  }else{
+    $("#blk_metric").style.display="none";
+    $("#blk_imperial").style.display="";
+    const h = cmToFtIn(p.heightCm||0);
+    $("#p_height_ft").value = h.ft||"";
+    $("#p_height_in").value = h.inch||"";
+    $("#p_weight_lb").value = p.weightLb||"";
+  }
+
+  $("#profileSummary").textContent =
+    `PROFILE: ${p.name||"-"}${p.weightLb?` — ${Math.round(p.weightLb)} lb`:""}`;
+}
+$("#p_units").addEventListener("change",()=>{
+  const val = $("#p_units").value;
+  if(val==="metric"){ $("#blk_metric").style.display=""; $("#blk_imperial").style.display="none"; }
+  else { $("#blk_metric").style.display="none"; $("#blk_imperial").style.display=""; }
+});
+$("#saveProfile").addEventListener("click",()=>{
+  const unitSystem = $("#p_units").value || "imperial";
+  let heightCm, weightLb;
+
+  if(unitSystem==="metric"){
+    const cm = parseFloat($("#p_height_cm").value||"");
+    const kg = parseFloat($("#p_weight_kg").value||"");
+    heightCm = isNaN(cm)?undefined:cm;
+    weightLb = isNaN(kg)?undefined:kgToLb(kg);
+  }else{
+    const ft = parseFloat($("#p_height_ft").value||"");
+    const inch = parseFloat($("#p_height_in").value||"");
+    const lb = parseFloat($("#p_weight_lb").value||"");
+    heightCm = isNaN(ft)?undefined:ftInToCm(ft, isNaN(inch)?0:inch);
+    weightLb = isNaN(lb)?undefined:lb;
+  }
+
+  const p={
+    name:$("#p_name").value.trim(),
+    sex:$("#p_sex").value,
+    age:parseInt($("#p_age").value||"0",10)||undefined,
+    ageBracket:$("#p_ageBracket").value,
+    unitSystem,
+    heightCm,
+    weightLb,
+    sharePRs: $("#p_share").value!=="no"
+  };
+  state.profile=p; saveUserData(activeUID(),state); hydrateProfileUI(); profileDropdown.classList.remove("show"); renderHome(); renderBenchmarks(); renderProgress();
+});
+$("#openExercisePicker").addEventListener("click",()=>openPicker());
+
+/* Age scaling + model */
+function ageIdx(age){return ["17-26","27-30","31-35","36-40","41-45","46-50","51-55","56-60","61-65","66-70"].indexOf(age)}
+// Dynamic age & gender scaling baselines
+function withProspect(row){return row}
+function r(cat,name,unit,dir,std,strong,elite,max,note){return {cat,name,unit,dir,std,strong,elite,max,note}}
+const AGE_BRACKETS=[{min:-Infinity,max:19,time:0.97,output:1.03},{min:20,max:35,time:1.00,output:1.00},{min:36,max:39,time:1.02,output:0.98},{min:40,max:44,time:1.04,output:0.96},{min:45,max:49,time:1.07,output:0.93},{min:50,max:54,time:1.10,output:0.90},{min:55,max:59,time:1.13,output:0.87},{min:60,max:64,time:1.16,output:0.84},{min:65,max:69,time:1.20,output:0.80},{min:70,max:74,time:1.25,output:0.75},{min:75,max:Infinity,time:1.30,output:0.70}];
+const GENDER_MULT={male:{time:1.00,output:1.00},female:{time:1.12,output:0.88}};
+const BASE={
+  pullups:{type:'output',levels:[4,5,12,15,20]},
+  pushups:{type:'output',levels:[32,40,60,80,100]},
+  bench_ratio:{type:'ratio',levels:[0.8,1.0,1.25,1.5,1.75]},
+  ammo_reps:{type:'output',levels:[26,40,60,80,100]},
+  plank_time:{type:'time',levels:[60,90,120,180,240]},
+  run_800m:{type:'time',levels:[225,210,180,150,135]},
+  run_1mi:{type:'time',levels:[480,420,390,360,330]},
+  run_3mi:{type:'time',levels:[1620,1440,1260,1140,1080]},
+  run_5k:{type:'time',levels:[1650,1440,1260,1170,1080]},
+  run_10k:{type:'time',levels:[3300,3000,2700,2400,2280]},
+  long_jump_in:{type:'output',levels:[160,200,225,250,300]},
+  farmers_m:{type:'output',levels:[40,50,75,100,150]},
+  deadlift_r:{type:'ratio',levels:[1.0,1.25,1.5,2.0,2.5]},
+  squat_r:{type:'ratio',levels:[1.0,1.25,1.5,2.0,2.5]},
+};
+function pickAgeBracket(age){const a=Number(age||30); return AGE_BRACKETS.find(b=>a>=b.min&&a<=b.max)||AGE_BRACKETS[1]}
+function roundTime(v){return Math.round(v/5)*5}
+function roundOutput(v){return Math.round(v)}
+function roundRatio(v){return Math.round(v*20)/20}
+function scaleByProfile(base, metric, age, sex){const br=pickAgeBracket(age); const gm=(GENDER_MULT[sex||'male']||GENDER_MULT.male); const mult=(metric==='time')?(br.time*gm.time):(metric==='ratio'?gm.output*br.output:gm.output*br.output); let v=base*mult; if(metric==='time') v=roundTime(v); else if(metric==='ratio') v=roundRatio(v); else v=roundOutput(v); // clamp bounds
+  const low=(metric==='time')?base*0.60:base*0.50; const high=(metric==='time')?base*2.0:base*1.5; return Math.max(low,Math.min(high,v)); }
+function inchesToCm(inch){return Math.round(inch*2.54)}
+function mk(cat,name,unit,dir,key){const spec=BASE[key]; const age=Number(state.profile?.age||30); const sex=(state.profile?.sex)||'male'; const lvls=spec.levels.map(v=>scaleByProfile(v,spec.type,age,sex)); // unit conversions
+  if(key==='long_jump_in'){ for(let i=0;i<lvls.length;i++) lvls[i]=inchesToCm(lvls[i]); }
+  const [prospect,standard,strong,elite,maxv]=lvls; return {cat,name,unit,dir,prospect,std:standard,strong,elite,max:maxv}; }
+function buildModel(){
+  return [
+    mk("Upper Body","Pull-ups (strict, dead-hang)","reps","higher","pullups"),
+    mk("Upper Body","Push-ups (strict, nonstop)","reps","higher","pushups"),
+    mk("Upper Body","Barbell Bench Press (xBW for 2–5 reps)","xBW","higher","bench_ratio"),
+    mk("Upper Body","Ammo Can Press (30 lb, 2 min)","reps","higher","ammo_reps"),
+    mk("Core","Plank Hold","sec","lower","plank_time"),
+    mk("Speed & Endurance","800 m Run","sec","lower","run_800m"),
+    mk("Speed & Endurance","1-Mile Run","sec","lower","run_1mi"),
+    mk("Speed & Endurance","3-Mile (anchor)","sec","lower","run_3mi"),
+    mk("Speed & Endurance","5K Run","sec","lower","run_5k"),
+    mk("Speed & Endurance","10K Run","sec","lower","run_10k"),
+    mk("Explosive Power","Standing Long Jump","cm","higher","long_jump_in"),
+    mk("Load & Work Capacity","Farmer’s Carry (2×50 lb DBs)","m","higher","farmers_m"),
+    mk("Load & Work Capacity","Deadlift (xBW for 8 reps)","xBW","higher","deadlift_r"),
+    mk("Load & Work Capacity","Squat (xBW for 8 reps)","xBW","higher","squat_r"),
+  ];
+}
+
+/* Scoring */
+function tierAndPoints5(dir,val,prospect,std,strong,elite,maxv){
+  if(val==null||isNaN(val)) return {tier:"-",pts:null}; let t="Below",p=0;
+  if(dir==="higher"){
+    if(val<prospect){p=Math.max(0,20*(val/prospect));t="Below"}
+    else if(val<std){p=20+(val-prospect)/(std-prospect)*20;t="Prospect"}
+    else if(val<strong){p=40+(val-std)/(strong-std)*30;t="Standard"}
+    else if(val<elite){p=70+(val-strong)/(elite-strong)*20;t="Strong"}
+    else if(val<maxv){p=90+(val-elite)/(maxv-elite)*10;t="Elite"}
+    else {p=100;t="Max"}
+  } else {
+    if(val>prospect){p=Math.max(0,20*(prospect/val));t="Below"}
+    else if(val>std){p=20+(prospect-val)/(prospect-std)*20;t="Prospect"}
+    else if(val>strong){p=40+(std-val)/(std-strong)*30;t="Standard"}
+    else if(val>elite){p=70+(strong-val)/(strong-elite)*20;t="Strong"}
+    else if(val>maxv){p=90+(elite-val)/(elite-maxv)*10;t="Elite"}
+    else {p=100;t="Max"}
+  }
+  return {tier:t,pts:Math.round(p)};
+}
+function tierClass(t){return t==="Max"?"t-max":t==="Elite"?"t-elite":t==="Strong"?"t-strong":t==="Standard"?"t-std":t==="Prospect"?"t-prospect":""}
+
+/* Level meter helpers */
+const BANDS=[0.00,0.20,0.40,0.70,0.90,1.00];
+const TIER_IDX={Prospect:1,Standard:2,Strong:3,Elite:4,Max:5};
+function bandForTier(t){const i=TIER_IDX[t]||0; const start=BANDS[i-1]||0, end=BANDS[i]||0; return {start,end,mid:(start+end)/2}}
+function tierColor(t){return t==="Max"?"var(--max)":t==="Elite"?"var(--elite)":t==="Strong"?"var(--strong)":t==="Standard"?"var(--std)":t==="Prospect"?"var(--prospect)":"var(--muted)"}
+function updateMeter(idx,row,val){
+  let tier="-";
+  if(val!=null && !isNaN(val)) tier=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max).tier;
+  const {end,mid}=bandForTier(tier);
+  const mark=$("#mark-"+idx); if(mark) mark.style.left=Math.round(mid*100)+"%";
+  const fill=$("#fill-"+idx); if(fill){ fill.style.width=Math.round(end*100)+"%"; }
+}
+
+/* Picker */
+const pickerModal=$("#pickerModal"), pickerGroups=$("#pickerGroups");
+function exerciseKey(row){return `${row.cat}|${row.name}|${row.unit}|${row.dir}`}
+function openPicker(){buildAndRenderPicker();pickerModal.style.display="flex"}
+$("#pickerSelectAll").addEventListener("click",()=>$$("#pickerGroups input[type=checkbox]").forEach(cb=>cb.checked=true))
+$("#pickerClear").addEventListener("click",()=>$$("#pickerGroups input[type=checkbox]").forEach(cb=>cb.checked=false))
+$("#pickerSave").addEventListener("click",()=>{
+  const selected=$$("#pickerGroups input[type=checkbox]:checked").map(cb=>cb.value);
+  state.selectedExercises=selected; saveUserData(activeUID(),state); pickerModal.style.display="none"; renderHome(); renderBenchmarks(); renderProgress();
+})
+pickerModal.addEventListener("click",e=>{if(e.target===pickerModal) pickerModal.style.display="none"})
+function buildAndRenderPicker(){
+  const rows=buildModel(), byCat={}; rows.forEach(r=>{(byCat[r.cat]=byCat[r.cat]||[]).push(r)});
+  pickerGroups.innerHTML="";
+  Object.entries(byCat).forEach(([cat,list])=>{
+    const card=document.createElement("div"); card.className="panel";
+    const id=cat.replace(/\W+/g,'_');
+    card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;font:700 14px 'Roboto Condensed';text-transform:uppercase">${cat}</h3><button class="rowbtn" id="toggle_${id}">Toggle</button></div><div style="margin-top:6px;display:grid;gap:6px">`+
+    list.map(r=>{const key=exerciseKey(r); const checked=state.selectedExercises?.length?state.selectedExercises.includes(key):true; return `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" value="${key}" ${checked?"checked":""}><span>${r.name}</span></label>`}).join("")+`</div>`;
+    pickerGroups.appendChild(card);
+    card.querySelector("#toggle_"+id).addEventListener("click",()=>{const cbs=card.querySelectorAll("input[type=checkbox]"); const all=Array.from(cbs).every(cb=>cb.checked); cbs.forEach(cb=>cb.checked=!all);});
+  });
+}
+
+/* Home */
+let HOME_CHART;
+function setRing(sel,score){const el=$(sel);const pct=isNaN(score)?0:Math.max(0,Math.min(100,score));el.style.setProperty("--pct",pct.toString())}
+function bestFor(row){const key=exerciseKey(row);const logs=(state.logs||[]).filter(l=>l.exercise===key);if(!logs.length) return null;let best=logs[0];for(const l of logs){if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}return best}
+function updateProfileSummary(){const p=state.profile||{};$("#profileSummary").textContent=`PROFILE: ${p.name||"-"}${p.weightLb?` — ${Math.round(p.weightLb)} lb`:""}`}
+function filterRows(rows){const selected=state.selectedExercises&&state.selectedExercises.length?new Set(state.selectedExercises):null;return selected?rows.filter(r=>selected.has(exerciseKey(r))):rows}
+function renderHome(){
+  updateProfileSummary();
+  const rows = filterRows(buildModel());
+
+  // Recent PR chips (section lower on page)
+  const recent = extractPRTimeline();
+  const prWrap = $("#recentPRs"); if(prWrap){ prWrap.innerHTML=""; recent.forEach(l=>{ const chip=document.createElement("div"); chip.className="chip-sm"; const row = buildModel().find(r=>exerciseKey(r)===l.exercise); const val = row?.unit==="sec"?fmtSecs(l.value):(row?.unit==="xBW"?Number(l.value).toFixed(2):String(l.value)); chip.textContent = `${l.label.split(' — ')[1]||l.label} • ${val} • ${fmtDate(l.date)}`; prWrap.appendChild(chip); }); }
+
+  // build map level -> [row]
+  const byLevel = {Prospect:[], Standard:[], Strong:[], Elite:[], Max:[]};
+  rows.forEach(row=>{
+    const pr = bestFor(row);
+    if(!pr) return; // only show logged exercises
+    const {tier} = tierAndPoints5(row.dir, pr.value, row.prospect, row.std, row.strong, row.elite, row.max);
+    if(tier==="-"||tier==="Below") return; // must meet at least Prospect
+    (byLevel[tier]||byLevel.Standard).push({row, tier});
+  });
+
+  // Render chips
+  const wrap = $("#homeLevels");
+  wrap.innerHTML = "";
+  const order = ["Max","Elite","Strong","Standard","Prospect"];
+  order.forEach(lvl=>{
+    const group = document.createElement("div");
+    group.className = "level-group lvl-"+lvl;
+    group.innerHTML = `<h4>${lvl}</h4><div class="level-chips" id="chips_${lvl}"></div>`;
+    wrap.appendChild(group);
+    const slot = group.querySelector(".level-chips");
+    (byLevel[lvl]||[]).forEach(({row})=>{
+      const pr = bestFor(row);
+      const val = pr ? (row.unit==="sec" ? fmtSecs(pr.value) : (row.unit==="xBW" ? Number(pr.value).toFixed(2) : String(pr.value))) : "-";
+      const chip = document.createElement("div");
+      chip.className = "level-chip";
+      const nameOnly = row.name.split(" (")[0];
+      chip.textContent = val === "-" ? nameOnly : `${nameOnly} · ${val}`;
+      slot.appendChild(chip);
+    });
+    // If empty, show muted note
+    if(!(byLevel[lvl]||[]).length){
+      const m = document.createElement("div");
+      m.className = "muted"; m.textContent = "— none yet —";
+      slot.appendChild(m);
+    }
+  });
+
+  // Quick overall rings remain
+  // New scoring per spec
+  const standards=standardsFromModel(buildModel());
+  const prs=prsFromLogs(buildModel());
+  const scope=scopeKeysFromSelected(buildModel());
+  const hs=computeHeadlineScores(prs,standards,SCORE_SETS);
+  const overall=hs.OVERALL.score, pft=Math.round(hs.PFT.score), cft=Math.round(hs.CFT.score);
+  $("#overall").textContent=isNaN(overall)?"-":overall; $("#pft").textContent=isNaN(pft)?"-":pft; $("#cft").textContent=isNaN(cft)?"-":cft;
+  setRing("#ringOverall",overall||0); setRing("#ringPFT",pft||0); setRing("#ringCFT",cft||0);
+  // captions
+  // captions removed per request
+  // attach scores to rings for modal
+  $("#ringOverall").dataset.score = overall||0;
+  $("#ringPFT").dataset.score = pft||0;
+  $("#ringCFT").dataset.score = cft||0;
+  // medals
+  const med = summarizeMedals(prs,standards,scope);
+  const row=document.getElementById('medalRow'); if(row){ renderMedalRow(row, med.medals); }
+  $("#ringCardOverall").dataset.score = overall||0;
+  $("#ringCardPFT").dataset.score = pft||0;
+  $("#ringCardCFT").dataset.score = cft||0;
+
+  // Next-level targets (show up to 6)
+  const tgtWrap=$("#nextTargets"); tgtWrap.innerHTML="";
+  const list = rows.map(row=>{
+    const pr=bestFor(row); if(!pr) return null;
+    const thresholds=["Prospect","Standard","Strong","Elite","Max"]; const vals=[row.prospect,row.std,row.strong,row.elite,row.max];
+    const {tier}=tierAndPoints5(row.dir,pr.value,row.prospect,row.std,row.strong,row.elite,row.max);
+    const idx=thresholds.indexOf(tier); const nextIdx=Math.min(idx+1,thresholds.length-1);
+    if(nextIdx===idx) return null;
+    const nextVal=vals[nextIdx];
+    const label=row.unit==="sec"?fmtSecs(nextVal):(row.unit==="xBW"?Number(nextVal).toFixed(2):String(nextVal));
+    return {name:row.name.split(' (')[0], label};
+  }).filter(Boolean).slice(0,6);
+  list.forEach(x=>{const chip=document.createElement("div"); chip.className="chip-sm"; chip.textContent=`${x.label} ${x.name}`; tgtWrap.appendChild(chip)});
+
+  // Fireteam snapshot: top 3 friend PRs
+  const snap=$("#fireteamSnap"); if(snap){snap.innerHTML=''; try{ensureFireteam(); const friends=fireteamFriends(); const items=[]; const rowsAll=buildModel(); friends.forEach(uid=>{const data=loadFriendData(uid)||{}; if(data.profile && data.profile.sharePRs===false) return; (data.logs||[]).filter(l=>l.isPR).slice(-30).forEach(l=>{const r=rowsAll.find(rr=>exerciseKey(rr)===l.exercise); if(!r) return; const val=r.unit==='sec'?fmtSecs(l.value):(r.unit==='xBW'?Number(l.value).toFixed(2):String(l.value)); items.push({name:data.profile?.name||'Friend', label:l.label.split(' — ')[1], val, date:l.date})});}); items.sort((a,b)=>b.date.localeCompare(a.date)); items.slice(0,3).forEach(i=>{const c=document.createElement('div'); c.className='chip-sm'; c.textContent=`${i.name}: ${i.label} • ${i.val}`; snap.appendChild(c)});}catch{}}
+
+  // Quick Log: populate and wire
+  const qSel=$("#quickLogExercise");
+  if(qSel){
+    const opts=rows.map(r=>`<option value="${exerciseKey(r)}">${r.name}</option>`).join('');
+    qSel.innerHTML=opts;
+    const btn=$("#quickLogBtn");
+    if(btn){
+      btn.onclick=()=>{
+        const key=qSel.value; const row=buildModel().find(r=>exerciseKey(r)===key);
+        if(row) openLogModal(row);
+      };
+    }
+  }
+}
+// Removed: no #openLevelsHome element present
+
+/* Benchmarks */
+const TBL=$("#tbody");
+function fmtTarget(row,val){if(row.unit==="sec") return fmtSecs(val); if(row.unit==="xBW") return Number(val).toFixed(2); return String(val)}
+function friendBest(row){try{ensureFireteam(); const friends=fireteamFriends(); let best=null, bestUid=null; for(const uid of friends){const data=loadFriendData(uid)||{}; if(data.profile && data.profile.sharePRs===false) continue; const logs=(data.logs||[]).filter(l=>l.exercise===exerciseKey(row)); for(const l of logs){ if(!best || (row.dir==='higher'? l.value>best : l.value<best)) { best=l.value; bestUid=uid; } } } return bestUid?{uid:bestUid,value:best}:null;}catch{return null}}
+function renderBenchmarks(){
+  const filter=$("#benchFilter").value||"selected";
+  const all=buildModel();
+  const rows=filter==="all"?all:filterRows(all);
+  TBL.innerHTML="";
+
+  rows.forEach((row,idx)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.cat}</td>
+      <td>
+        <span id="ft-${idx}" style="margin-right:6px"></span>
+        <button class="exercise-link" data-exkey="${nameToKey(row.name)}" style="all:unset;cursor:pointer;color:#2bd9b8;font-weight:600">${row.name}</button>
+        <div class="level-meter" id="meter-${idx}"><div class="fill" id="fill-${idx}"></div><div class="tick" style="left:20%"></div><div class="tick" style="left:40%"></div><div class="tick" style="left:70%"></div><div class="tick" style="left:90%"></div><div class="marker" id="mark-${idx}" style="left:0%"></div></div>
+      </td>
+      <td class="col-prospect"><span class="badge b-prospect level-badge" data-level="Prospect">${fmtTarget(row,row.prospect)}</span></td>
+      <td class="col-standard"><span class="badge b-std level-badge" data-level="Standard">${fmtTarget(row,row.std)}</span></td>
+      <td class="col-strong"><span class="badge b-strong level-badge" data-level="Strong">${fmtTarget(row,row.strong)}</span></td>
+      <td class="col-elite"><span class="badge b-elite level-badge" data-level="Elite">${fmtTarget(row,row.elite)}</span></td>
+      <td class="col-max"><span class="badge b-max level-badge" data-level="Max">${fmtTarget(row,row.max)}</span></td>
+      <td id="pr-${idx}" class="pr">-</td>
+      <td id="log-${idx}"></td>`;
+    TBL.appendChild(tr);
+
+    const btn=document.createElement("button");
+    btn.textContent="Log Attempt"; btn.className="btn"; // highlight
+    btn.addEventListener("click",()=>openLogModal(row));
+    $("#log-"+idx).appendChild(btn);
+
+    refreshPRCell(idx,row);
+
+    // highlight current tier cell based on PR
+  const pr = bestFor(row);
+  if(pr){
+      const {tier}=tierAndPoints5(row.dir,pr.value,row.prospect,row.std,row.strong,row.elite,row.max);
+      const map = {Prospect:".col-prospect",Standard:".col-standard",Strong:".col-strong",Elite:".col-elite",Max:".col-max"};
+      const td = tr.querySelector(map[tier]);
+      if(td) td.classList.add("hl");
+  }
+    // fireteam leader avatar
+    const lead=friendBest(row); const my=bestFor(row); const better = lead && (!my || (row.dir==='higher'? lead.value>my.value : lead.value<my.value));
+    if(lead && better){ const span=document.createElement('span'); const name=(loadFriendData(lead.uid)?.profile?.name||'F'); const ini=(name[0]||'F').toUpperCase(); span.textContent=ini; span.title=`Squad leader`; span.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2db9a2;color:#0b1311;font-weight:800;font-size:11px'; $("#ft-"+idx).appendChild(span); }
+
+    // update meter marker with PR position
+    updateMeter(idx,row,pr?.value);
+  });
+}
+on("#benchFilter","change",renderBenchmarks);
+// removed old #btnLevels click handler
+on("#levelsClose","click",()=>$("#levelsModal").style.display="none");
+function updateRow(idx,raw,row){
+  const tierEl=$("#tier-"+idx), ptsEl=$("#pts-"+idx);
+  if(!tierEl && !ptsEl) return; // columns not present
+  const val=row.unit==="sec"?parseTimeInput(raw):parseFloat(raw);
+  const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+  if(tierEl) tierEl.innerHTML=`<span class="tag ${tierClass(tier)}">${tier}</span>`;
+  if(ptsEl) ptsEl.textContent=isNaN(pts)?"-":pts;
+}
+function logAttempt(row,raw){
+  const val=row.unit==="sec"?parseTimeInput(raw):parseFloat(raw); if(isNaN(val)){alert("Enter a valid number (or mm:ss for times) before logging.");return;}
+  const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+  const entry={date:todayISO(),exercise:exerciseKey(row),label:`${row.cat} — ${row.name}`,value:val,unit:row.unit,dir:row.dir,tier,pts};
+  state.logs.push(entry); state.logs=dedupe(state.logs,x=>`${x.date}|${x.exercise}|${x.value}`); saveUserData(activeUID(),state);
+  refreshPRByKey(row); renderHome(); renderProgress();
+}
+function refreshPRCell(idx,row){const best=bestFor(row); $("#pr-"+idx).textContent=best?((row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value)))+" on "+fmtDate(best.date)):"-"}
+function refreshPRByKey(row){$$("#view-benchmarks tbody tr").forEach(tr=>{const name=tr.children[1]?.textContent||""; if(name.includes(row.name)){const best=bestFor(row); tr.querySelector(".pr").textContent=best?((row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value)))+" on "+fmtDate(best.date)):"-"}})}
+
+/* Log Attempt Modal - tracker UI */
+let LOG_ROW=null;
+let ACTIVE_NUM_INP=null;
+function buildSetRow(curRow,i){
+  const wrap=document.createElement('div'); wrap.className='set-row';
+  const baseStyle='display:grid;gap:10px;align-items:center;margin:6px 0;min-width:0';
+  const idx=`<div class="badge" style="text-align:center">${i+1}</div>`;
+  const mkInput=(label,width,field,placeholder='')=>`
+    <div style=\"display:flex;gap:6px;align-items:center;min-width:0\">
+      <label class=\"muted\" style=\"width:${width}\">${label}</label>
+      <input class=\"num-inp\" data-field=\"${field}\" inputmode=\"numeric\" placeholder=\"${placeholder}\" style=\"flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--grid);background:#0f1620;color:var(--ink)\"/>
+    </div>`;
+  const unit=curRow?.unit||'reps';
+  if(unit==='reps'){
+    wrap.style.cssText=baseStyle+';grid-template-columns:60px 1fr';
+    wrap.innerHTML=idx + mkInput('Reps','48px','reps');
+  } else if(unit==='xBW'){
+    wrap.style.cssText=baseStyle+';grid-template-columns:60px 1fr';
+    wrap.innerHTML=idx + mkInput('Weight/Side','110px','weight','lb');
+  } else if(unit==='sec'){
+    wrap.style.cssText=baseStyle+';grid-template-columns:60px 1fr';
+    wrap.innerHTML=idx + mkInput('Time','60px','time','mm:ss or sec');
+  } else {
+    wrap.style.cssText=baseStyle+';grid-template-columns:60px 1fr';
+    wrap.innerHTML=idx + mkInput('Value','60px','value','number');
+  }
+  wrap.querySelectorAll('.num-inp').forEach(inp=>inp.addEventListener('focus',()=>{ACTIVE_NUM_INP=inp;}));
+  return wrap;
+}
+function openLogModal(row,raw){
+  LOG_ROW=row; const modal=$("#logModal"); $("#logTitle").textContent=row.name;
+  // populate exercise dropdown
+  const sel=$('#logExerciseSelect'); if(sel){
+    const rows=filterRows(buildModel());
+    sel.innerHTML = rows.map(r=>`<option value="${exerciseKey(r)}" ${exerciseKey(r)===exerciseKey(row)?'selected':''}>${r.name}</option>`).join('');
+    sel.onchange = (e)=>{ const key=e.target.value; const r=buildModel().find(x=>exerciseKey(x)===key); if(r){ openLogModal(r); } };
+  }
+  const sets=$("#logSets"); sets.innerHTML=''; sets.appendChild(buildSetRow(row,0));
+  const firstInput=sets.querySelector('.num-inp'); if(raw && firstInput){ firstInput.value = row.unit==='sec'?parseTimeInput(raw):raw; }
+  const pad=$("#logPad"); pad.style.gridTemplateColumns='repeat(3,1fr)';
+  const keys = row.unit==='sec' ? [1,2,3,4,5,6,7,8,9,':',0,'⌫'] : [1,2,3,4,5,6,7,8,9,'0','⌫'];
+  pad.innerHTML=keys.map(k=>`<button class="btn secondary" data-key="${k}" style="padding:10px 0">${k}</button>`).join('');
+  pad.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(!ACTIVE_NUM_INP){ACTIVE_NUM_INP=firstInput; ACTIVE_NUM_INP?.focus();} if(!ACTIVE_NUM_INP) return; const k=b.dataset.key; if(k==='⌫'){ACTIVE_NUM_INP.value=String(ACTIVE_NUM_INP.value||'').slice(0,-1);} else {ACTIVE_NUM_INP.value=(ACTIVE_NUM_INP.value||'')+k;} ACTIVE_NUM_INP.dispatchEvent(new Event('input')); }));
+  on('#logAddSet','click',()=>{sets.appendChild(buildSetRow(row,sets.children.length));});
+  on('#logCancel','click',()=>$("#logModal").style.display="none");
+  modal.style.display='flex';
+}
+on("#logSave","click",()=>{
+  const row=LOG_ROW; if(!row) return;
+  const sets=$('#logSets'); const all=[...sets.querySelectorAll('.set-row')].map(r=>({
+    reps:parseFloat(r.querySelector('[data-field="reps"]')?.value||''),
+    wt:parseFloat(r.querySelector('[data-field="weight"]')?.value||''),
+    time:(r.querySelector('[data-field="time"]')?.value||''),
+    value:parseFloat(r.querySelector('[data-field="value"]')?.value||'')
+  }));
+  let val=NaN;
+  if(row.unit==='reps'){
+    val=Math.max(...all.map(s=>isNaN(s.reps)?-Infinity:s.reps));
+  } else if(row.unit==='xBW'){
+    const bw=(state.profile?.weightLb)||NaN; const best=Math.max(...all.map(s=>isNaN(s.wt)?-Infinity:(2*s.wt))); val=bw? (best/bw) : NaN;
+  } else if(row.unit==='sec'){
+    const t=all[0]?.time; val = typeof t==='string' ? parseTimeInput(t) : parseFloat(t);
+  } else {
+    val=parseFloat(all[0]?.value);
+  }
+  if(!isFinite(val) || isNaN(val)){alert('Enter at least one valid value.'); return;}
+  const notes=''; const quality='rx'; const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);
+  const entry={date:todayISO(),exercise:exerciseKey(row),label:`${row.cat} — ${row.name}`,value:val,unit:row.unit,dir:row.dir,tier,pts,quality,notes,sets:all};
+  const best=bestFor(row); if(!best || isBetter(row,best.value,val)) entry.isPR=true;
+  state.logs.push(entry); state.logs=dedupe(state.logs,x=>`${x.date}|${x.exercise}|${x.value}|${(x.sets?.length)||0}`); saveUserData(activeUID(),state);
+  $("#logModal").style.display="none"; refreshPRByKey(row); renderHome(); renderProgress();
+  $$("#view-benchmarks tbody tr").forEach((tr,i)=>{const name=tr.children[1]?.textContent||""; if(name.includes(row.name)){updateMeter(i,row,bestFor(row)?.value)}});
+  try{if(Notification && Notification.permission!=="denied"){ if(Notification.permission!=="granted"){Notification.requestPermission?.()} new Notification("Attempt logged",{ body: entry.isPR?`New PR in ${row.name}`:`Logged ${row.name}` }); }}catch{}
+});
+
+/* Test Day wizard */
+const testModal=$("#testModal"), testBody=$("#testBody"); let testIdx=0, testRows=[], testResults=[];
+$("#startTestDay").addEventListener("click",()=>{testRows=filterRows(buildModel()); if(!testRows.length){alert("Select at least one exercise in Profile → Exercise selection.");return;} testResults=[];testIdx=0;showTestStep();testModal.style.display="flex"});
+$("#testPrev").addEventListener("click",()=>{if(testIdx>0){testIdx--;showTestStep()}}); $("#testSkip").addEventListener("click",()=>{testIdx++; if(testIdx>=testRows.length) return finishTest(); showTestStep()});
+$("#testNext").addEventListener("click",()=>{const row=testRows[testIdx];const inp=$("#testInput");const val=row.unit==="sec"?parseTimeInput(inp.value):parseFloat(inp.value);if(isNaN(val)){alert("Enter a valid number (or mm:ss for times).");return;}const {tier,pts}=tierAndPoints5(row.dir,val,row.prospect,row.std,row.strong,row.elite,row.max);testResults.push({date:todayISO(),exercise:exerciseKey(row),label:`${row.cat} — ${row.name}`,value:val,unit:row.unit,dir:row.dir,tier,pts});testIdx++; if(testIdx>=testRows.length) return finishTest(); showTestStep()});
+testModal.addEventListener("click",e=>{if(e.target===testModal) testModal.style.display="none"});
+function showTestStep(){const row=testRows[testIdx]; $("#testTitle").textContent=`Test Day — ${testIdx+1} of ${testRows.length}`; testBody.innerHTML=`<div class="panel"><h2>${row.name}</h2><div class="grid grid-3" style="margin-top:8px"><div><div class="badge b-prospect">Prospect: ${fmtTarget(row,row.prospect)}</div></div><div><div class="badge b-std">Standard: ${fmtTarget(row,row.std)}</div></div><div><div class="badge b-elite">Elite: ${fmtTarget(row,row.elite)}</div></div></div><label style="margin-top:10px">Enter your result</label><input id="testInput" placeholder="${row.unit==="sec"?"seconds or mm:ss":(row.unit==="xBW"?"e.g. 1.50":"value")}"></div>`; const nextBtn=$("#testNext"); nextBtn.textContent=(testIdx===testRows.length-1)?"Complete Test":"Next";}
+function finishTest(){if(!testResults.length){testModal.style.display="none";return;} state.logs.push(...testResults); const avg=Math.round(testResults.reduce((s,x)=>s+(x.pts||0),0)/testResults.length); const session={id:"s_"+Math.random().toString(36).slice(2,9),date:todayISO(),entries:testResults,avgPts:avg}; state.sessions=[...(state.sessions||[]),session]; saveUserData(activeUID(),state); testBody.innerHTML=`<div class="panel"><h2>Summary</h2><p class="muted">Average points: <b>${avg}</b> across ${testResults.length} exercises.</p><div style="margin-top:10px"><button class="btn" id="testDone">Close</button></div></div>`; $("#testDone").addEventListener("click",()=>{testModal.style.display="none";renderHome();renderProgress();renderBenchmarks()})}
+
+/* Progress */
+let PROG_CHART;
+function renderProgress(){
+  const rows=filterRows(buildModel()), sel=$("#progExercise");
+  sel.innerHTML=rows.map(r=>`<option value="${exerciseKey(r)}">${r.name}</option>`).join("");
+  if(!rows.length){$("#calendar").innerHTML="No selected exercises. Open Profile and choose some."; $("#progMeters").innerHTML=""; $("#progTimeline").innerHTML=""; return;}
+  drawCalendar();
+  // Build meters for each selected exercise
+  const wrap=$("#progMeters"); wrap.innerHTML="";
+  rows.forEach((row,i)=>{
+    const pr=bestFor(row);
+    const label=row.name.split(" (")[0];
+    const right=pr? (row.unit==="sec"?fmtSecs(pr.value):(row.unit==="xBW"?Number(pr.value).toFixed(2):String(pr.value))) : "-";
+    const blk=document.createElement("div"); blk.style.margin="10px 0";
+    blk.innerHTML = `<div style=\"display:flex;justify-content:space-between;align-items:center\"><div><b>${label}</b></div><div class=\"muted\">${right}</div></div>
+    <div class=\"level-meter\" id=\"pmeter-${i}\"><div class=\"fill\" id=\"pfill-${i}\"></div><div class=\"tick\" style=\"left:20%\"></div><div class=\"tick\" style=\"left:40%\"></div><div class=\"tick\" style=\"left:70%\"></div><div class=\"tick\" style=\"left:90%\"></div><div class=\"marker\" id=\"pmark-${i}\" style=\"left:0%\"></div></div>
+    <div class="muted" style="margin-top:4px">Streak: ${weeksStreakFor(exerciseKey(row)) || 0} week${(weeksStreakFor(exerciseKey(row))||0)===1?"":"s"}</div>`;
+    wrap.appendChild(blk);
+    const curr = pr?.value;
+    let tier = curr!=null? tierAndPoints5(row.dir,curr,row.prospect,row.std,row.strong,row.elite,row.max).tier : "-";
+    const band = bandForTier(tier);
+    const mark=$("#pmark-"+i); if(mark) mark.style.left=Math.round(band.mid*100)+"%";
+    const pf=$("#pfill-"+i); if(pf){ pf.style.width=Math.round(band.end*100)+"%"; }
+  });
+  // PR timeline for all exercises
+  const tl=$("#progTimeline"); tl.innerHTML=""; extractPRTimeline().forEach(l=>{const chip=document.createElement("div"); chip.className="chip-sm"; const row=buildModel().find(r=>exerciseKey(r)===l.exercise); const val=row?.unit==="sec"?fmtSecs(l.value):(row?.unit==="xBW"?Number(l.value).toFixed(2):String(l.value)); chip.textContent = `${l.label.split(' — ')[1]} • ${val} • ${l.date}`; tl.appendChild(chip)});
+}
+
+/* Fireteam view */
+function renderFireteam(){
+  ensureFireteam();
+  $("#inviteCode").textContent = inviteCode();
+  // Leaderboard (Overall/PFT/CFT simplified to Overall)
+  const uids=[inviteCode(),...fireteamFriends()];
+  const ranks=uids.map(uid=>{const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); let ptsSum=0,cnt=0; rows.forEach(r=>{const best=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); if(best){const {pts}=tierAndPoints5(r.dir,best.value,r.prospect,r.std,r.strong,r.elite,r.max); if(!isNaN(pts)){ptsSum+=pts;cnt++;}}}); const score=cnt?Math.round(ptsSum/cnt):0; const name=(loadUsers()||{})[Object.keys(loadUsers()||{}).find(k=>{const u=(loadUsers()||{})[k]; return u.uid===uid})||'']?.name || (uid===inviteCode()? (getSession()?.name||'You') : (loadFriendData(uid)?.profile?.name||'Friend')); return {uid,name,score};});
+  ranks.sort((a,b)=>b.score-a.score); const lb=$("#ftLeaderboard"); lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${r.name}: ${r.score}`; lb.appendChild(chip)});
+  // PR Feed
+  const feed=$("#ftFeed"); feed.innerHTML=""; const items=[]; fireteamFriends().forEach(uid=>{const data=loadFriendData(uid)||{}; if(data.profile && data.profile.sharePRs===false) return; (data.logs||[]).filter(l=>l.isPR).forEach(l=>items.push({...l,uid}))}); items.sort((a,b)=>b.date.localeCompare(a.date)); items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${loadFriendData(it.uid)?.profile?.name||'Friend'} hit PR: ${it.label.split(' — ')[1]} • ${it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value))} • ${fmtDate(it.date)}`; feed.appendChild(chip)});
+  // Compare options
+  const cmp=$("#compareWith"); cmp.innerHTML = fireteamFriends().map(uid=>`<option value="${uid}">${loadFriendData(uid)?.profile?.name||'Friend'}</option>`).join('');
+  cmp.addEventListener('change',()=>renderCompare(cmp.value),{once:true}); if(cmp.value) renderCompare(cmp.value);
+}
+function renderCompare(uid){const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); const tbl=document.createElement('table'); tbl.innerHTML='<thead><tr><th>Exercise</th><th>You</th><th>Friend</th></tr></thead>'; const body=document.createElement('tbody'); rows.forEach(r=>{const you=bestFor(r); const friend=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); const tr=document.createElement('tr'); const fmt=v=>v==null?'-':(r.unit==='sec'?fmtSecs(v):(r.unit==='xBW'?Number(v).toFixed(2):String(v))); tr.innerHTML=`<td>${r.name.split(' (')[0]}</td><td>${fmt(you?.value)}</td><td>${fmt(friend?.value)}</td>`; body.appendChild(tr)}); tbl.appendChild(body); const c=$("#compareTable"); c.innerHTML=''; c.appendChild(tbl)}
+function drawCalendar(){
+  const ms = monthStart(), me = monthEnd();
+  const year = ms.getFullYear(), month = ms.getMonth();
+  const firstDow = (ms.getDay()+6)%7; // Monday-start
+  const days = me.getDate();
+
+  const sessions = (state.sessions||[]).filter(s=>{
+    const d=new Date(s.date);
+    return d.getFullYear()===year && d.getMonth()===month;
+  });
+
+  const grid=document.createElement("div");
+  grid.style.display="grid";
+  grid.style.gridTemplateColumns="repeat(7,1fr)";
+  grid.style.gap="6px";
+
+  // headers
+  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(d=>{
+    const c=document.createElement("div");
+    c.className="muted";
+    c.textContent=d;
+    grid.appendChild(c);
+  });
+
+  // leading blanks
+  for(let i=0;i<firstDow;i++){
+    grid.appendChild(document.createElement("div"));
+  }
+
+  for(let d=1; d<=days; d++){
+    const cell=document.createElement("div");
+    cell.className="panel";
+    cell.style.padding="8px";
+
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const has = sessions.find(s=>s.date===dateStr);
+
+    cell.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><b>${d}</b></div>
+        ${has ? '<span class="badge b-strong">Test</span>' : ''}
+      </div>
+      ${has ? `<div class="muted" style="margin-top:6px">Avg: <b>${has.avgPts}</b></div>` : ''}
+    `;
+
+    if (has) {
+      cell.style.cursor = "pointer";
+      cell.addEventListener("click", ()=>alert(`Test Day ${fmtDate(dateStr)}\nAverage: ${has.avgPts}\nEntries: ${has.entries.length}`));
+    }
+
+    grid.appendChild(cell);
+  }
+
+  const cal = $("#calendar");
+  cal.innerHTML = "";
+  cal.appendChild(grid);
+}
+
+function drawProgChart(exKey){
+  const row=buildModel().find(r=>exerciseKey(r)===exKey)||filterRows(buildModel())[0]; const logs=(state.logs||[]).filter(l=>l.exercise===exKey).sort((a,b)=>a.date.localeCompare(b.date));
+  const last30=logs.filter(l=>{const d=new Date(l.date), now=new Date(); return (now-d)<=30*86400000});
+  const labels=last30.map(l=>l.date), values=last30.map(l=> l.unit==="sec"? l.value/60 : l.value);
+  const ms=monthStart(), me=monthEnd(), mlogs=logs.filter(l=>{const d=new Date(l.date); return d>=ms && d<=me});
+  if(mlogs.length){let best=mlogs[0]; mlogs.forEach(l=>{if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}); $("#bestThisMonth").textContent=row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value));} else {$("#bestThisMonth").textContent="-"}
+  const ctx=$("#progChart")?.getContext?.("2d"); if(!ctx || !window.Chart) return;
+  if(PROG_CHART) PROG_CHART.destroy();
+  PROG_CHART=new Chart(ctx,{type:"line",data:{labels,datasets:[{label:"Your Result",data:values,borderWidth:2,tension:.2}]},options:{responsive:true,scales:{y:{title:{display:true,text:row.unit==="sec"?"Minutes":(row.unit==="xBW"?"x Bodyweight":row.unit)}},x:{title:{display:true,text:"Date"}}},plugins:{legend:{display:false}}}});
+}
+
+/* Levels toast */
+(function(){const KEY="mcfit:levelsSeen"; if(localStorage.getItem(KEY)) return; const toast=$("#levelsToast"),link=$("#levelsOpenLink"),dismiss=$("#levelsDismiss"); toast.style.display="block"; link.addEventListener("click",(e)=>{e.preventDefault(); $("#levelsModal").style.display="flex"; toast.style.display="none"; localStorage.setItem(KEY,"1")}); dismiss.addEventListener("click",()=>{toast.style.display="none"; localStorage.setItem(KEY,"1")});})();
+
+/* Nav */
+$("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-route]"); if(!btn) return; location.hash=btn.dataset.route});
+
+/* Init */
+(function init(){
+  const s=getSession(); if(s){ $("#profileMenu").style.display=""; try{hydrateProfileUI()}catch{}}
+  const target=s?"#/home":"#/login"; if(!location.hash) location.hash=target; navigate(location.hash);
+  // Fireteam UI events
+  on('#addFriend','click',()=>{const code=$('#friendCode')?.value?.trim(); if(!code){const m=$('#friendMsg'); if(m) m.textContent='Enter a code';return;} ensureFireteam(); if(!state.fireteam.friends.includes(code)){ state.fireteam.friends.push(code); saveUserData(activeUID(),state); const m=$('#friendMsg'); if(m) m.textContent='Friend added.'; } else { const m=$('#friendMsg'); if(m) m.textContent='Already added.' }
+    renderFireteam(); });
+  if(location.hash==="#/fireteam") renderFireteam();
+  // Ring info modal
+  const openInfo=(title,body)=>{const m=$('#infoModal'); $('#infoTitle').textContent=title; $('#infoBody').textContent=body; m.style.display='flex'};
+  on('#infoClose','click',()=>$('#infoModal').style.display='none');
+  document.addEventListener('click',e=>{
+    const card=e.target.closest('#ringOverall,#ringPFT,#ringCFT,#ringCardOverall,#ringCardPFT,#ringCardCFT');
+    if(!card) return;
+    const id=card.id.includes('Card')? card.id.replace('ringCard','ring') : card.id;
+    const score=(document.getElementById(id)?.dataset.score) || (card.dataset.score) || '-';
+    if(id==='ringOverall') openInfo(`Your combined fitness score (${score})`,`Your combined fitness score across everything. Think of it as your “report card” average.`);
+    if(id==='ringPFT') openInfo(`Physical Fitness Test (${score})`,`Your Physical Fitness Test score. This measures endurance and strength exercises (like pull-ups, crunches/planks, and running).`);
+    if(id==='ringCFT') openInfo(`Combat Fitness Test (${score})`,`Your Combat Fitness Test score. This is more about functional strength and agility (like sprints, lifts, carries, and shuttle runs).`);
+  });
+  // Add Squad CTA on Home
+  on('#ctaAddSquad','click',()=>{ location.hash='#/fireteam'; setTimeout(()=>$('#friendCode')?.focus(), 250); });
+  // Invite by Email in Squad
+  on('#inviteByEmail','click',()=>{
+    const email=$('#friendEmail')?.value?.trim()?.toLowerCase();
+    const msg=$('#inviteMsg');
+    if(!email){ if(msg) msg.textContent='Enter an email address'; return; }
+    const users=loadUsers(); const user=users[email];
+    if(!user){ if(msg) msg.textContent='No account found. Ask them to sign up or use Invite Code.'; return; }
+    if(user.uid===activeUID()){ if(msg) msg.textContent='That’s you!'; return; }
+    ensureFireteam();
+    if(state.fireteam.friends?.includes(user.uid)){ if(msg) msg.textContent='Already connected.'; return; }
+    state.fireteam.friends = [...(state.fireteam.friends||[]), user.uid];
+    saveUserData(activeUID(), state);
+    if(msg) msg.textContent=`Connected to ${user.name||email}`;
+    renderFireteam();
+  });
+  // Exercise instructions modal
+  document.addEventListener('click',(e)=>{
+    const btn=e.target.closest('.exercise-link');
+    if(!btn) return;
+    const key=btn.dataset.exkey; const data=EX_INSTRUCTIONS[key];
+    const title=btn.textContent.trim(); const m=$('#infoModal');
+    $('#infoTitle').textContent=title;
+    const sections = data ? `
+      <div class="muted" style="line-height:1.6">
+        <div style="margin-top:6px"><b>How to perform</b><ul>${(data.how||[]).map(x=>`<li>${x}</li>`).join('')}</ul></div>
+        ${(data.tips&&data.tips.length)?`<div style="margin-top:6px"><b>Form tips</b><ul>${data.tips.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}
+        ${(data.faults&&data.faults.length)?`<div style=\"margin-top:6px\"><b>Common faults</b><ul>${data.faults.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}
+        ${data?.video ? `<div style="margin-top:10px"><a href="${data.video}" target="_blank" rel="noopener" class="rowbtn">Watch video</a></div>` : ''}
+      </div>
+    ` : `<p class="muted">Instructions coming soon.</p>`;
+    $('#infoBody').innerHTML=sections; m.style.display='flex';
+  });
+})();
+
+// About hero CTAs → navigate to Test Day on Home
+function goTestDay(){ location.hash = '#/home'; setTimeout(()=>$('#startTestDay')?.click(), 250); }
+on('#aboutStartTest','click',goTestDay);
+on('#aboutStartTest2','click',goTestDay);
+// Extra safety: delegate clicks from the whole CTA area
+document.addEventListener('click',e=>{
+  const target=e.target.closest('#aboutStartTest,#aboutStartTest2,.about-cta .btn');
+  if(target){ e.preventDefault(); goTestDay(); }
+});
+</script>
+</body>
+</html>
