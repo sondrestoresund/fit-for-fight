@@ -347,6 +347,7 @@
       <div class="panel"><h3 style="margin:0">Invite by Email</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendEmail" type="email" placeholder="friend@example.com"><button class="btn" id="inviteByEmail">Invite</button></div><div id="inviteMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Leaderboard</h3><div id="ftLeaderboard" style="margin-top:6px" class="chips"></div></div>
     </div>
+    <div class="panel" style="margin-top:12px"><h3 style="margin:0">Friends</h3><ul id="friendsList" style="list-style:none;padding:0;margin:6px 0;display:grid;gap:6px"></ul></div>
     <div class="panel" style="margin-top:12px"><h3 style="margin:0">PR Feed</h3><div id="ftFeed" style="margin-top:6px" class="chips"></div></div>
     <div class="panel" style="margin-top:12px"><h3 style="margin:0">Compare</h3><div style="margin-top:6px"><select id="compareWith"></select></div><div id="compareTable" style="margin-top:8px"></div></div>
   </section>
@@ -1421,11 +1422,28 @@ async function renderFireteam(){
   $("#inviteCode").textContent = inviteCode();
   const me=activeUID();
   const uids=[me,...fireteamFriends()].filter(Boolean);
-  // Fetch public docs
-  const docs = await Promise.all(uids.map(uid=>getDoc(pubDoc(uid)).then(s=>({uid, doc:s.exists()?s.data():null})).catch(()=>({uid,doc:null}))));
+  // Prefer realtime cache; fallback to fetch
+  const docs = await Promise.all(uids.map(async (uid)=>{
+    const cached = (window.PUB_CACHE&&window.PUB_CACHE[uid])||null;
+    if(cached) return {uid,doc:cached};
+    try{ const s=await getDoc(pubDoc(uid)); return {uid,doc:s.exists()?s.data():null}; }catch{ return {uid,doc:null}; }
+  }));
   // Leaderboard by OVERALL score
   const ranks = docs.map(({uid,doc})=>({ uid, name: doc?.name || (uid===me?'You':'Friend'), score: doc?.scores?.OVERALL?.score || 0 })).sort((a,b)=>b.score-a.score);
   const lb=$("#ftLeaderboard"); lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${r.name}: ${r.score}`; lb.appendChild(chip)});
+  // Friends list with remove buttons
+  const fl = document.getElementById('friendsList'); if(fl){
+    fl.innerHTML='';
+    const friends = uids.filter(u=>u!==me);
+    if(!friends.length){ const li=document.createElement('li'); li.className='muted'; li.textContent='No friends yet.'; fl.appendChild(li); }
+    friends.forEach(uid=>{
+      const d=(docs.find(x=>x.uid===uid)?.doc)||{}; const name=d?.name||uid.slice(0,6);
+      const li=document.createElement('li'); li.className='panel'; li.style.padding='8px'; li.style.display='flex'; li.style.justifyContent='space-between'; li.style.alignItems='center';
+      li.innerHTML=`<div>${name}</div><div><button class='rowbtn' data-remove='${uid}'>Remove</button></div>`;
+      fl.appendChild(li);
+    });
+  }
+
   // PR Feed from recentPRs
   const feed=$("#ftFeed"); feed.innerHTML=""; const items=[];
   docs.forEach(({uid,doc})=>{ if(!doc || doc.sharePRs===false) return; (doc.recentPRs||[]).forEach(x=>items.push({uid,name:doc.name||'Friend',label:x.label,value:x.value,unit:x.unit,date:x.date})) });
@@ -1435,7 +1453,37 @@ async function renderFireteam(){
   const cmp=$("#compareWith"); cmp.innerHTML = docs.filter(d=>d.uid!==me).map(({uid,doc})=>`<option value="${uid}">${doc?.name||'Friend'}</option>`).join('');
   cmp.addEventListener('change',()=>renderCompare(cmp.value),{once:true}); if(cmp.value) renderCompare(cmp.value);
 }
-function renderCompare(uid){const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); const tbl=document.createElement('table'); tbl.innerHTML='<thead><tr><th>Exercise</th><th>You</th><th>Friend</th></tr></thead>'; const body=document.createElement('tbody'); rows.forEach(r=>{const you=bestFor(r); const friend=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); const tr=document.createElement('tr'); const fmt=v=>v==null?'-':(r.unit==='sec'?fmtSecs(v):(r.unit==='xBW'?Number(v).toFixed(2):String(v))); tr.innerHTML=`<td>${r.name.split(' (')[0]}</td><td>${fmt(you?.value)}</td><td>${fmt(friend?.value)}</td>`; body.appendChild(tr)}); tbl.appendChild(body); const c=$("#compareTable"); c.innerHTML=''; c.appendChild(tbl)}
+async function renderCompare(uid){
+  const c=$("#compareTable"); if(!c) return; c.innerHTML='';
+  const me=activeUID();
+  const meDoc = (window.PUB_CACHE&&window.PUB_CACHE[me]) || (await getDoc(pubDoc(me)).then(s=>s.data()).catch(()=>null)) || {};
+  const frDoc = (window.PUB_CACHE&&window.PUB_CACHE[uid]) || (await getDoc(pubDoc(uid)).then(s=>s.data()).catch(()=>null)) || {};
+  const wrap=document.createElement('div');
+  wrap.innerHTML = `
+    <div class="grid grid-2">
+      <div class="panel">
+        <h3 style="margin:0">${meDoc.name||'You'}</h3>
+        <div class="chips" style="margin-top:6px">
+          <div class="chip-sm">Overall: ${meDoc.scores?.OVERALL?.score ?? '-'}</div>
+          <div class="chip-sm">PFT: ${meDoc.scores?.PFT?.score ?? '-'}</div>
+          <div class="chip-sm">CFT: ${meDoc.scores?.CFT?.score ?? '-'}</div>
+        </div>
+        <div class="muted" style="margin-top:6px">Recent PRs</div>
+        <div class="chips" style="margin-top:6px">${(meDoc.recentPRs||[]).slice(-6).map(x=>`<div class='chip-sm'>${x.label} • ${x.unit==='sec'?fmtSecs(x.value):(x.unit==='xBW'?Number(x.value).toFixed(2):String(x.value))}</div>`).join('')}</div>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0">${frDoc.name||'Friend'}</h3>
+        <div class="chips" style="margin-top:6px">
+          <div class="chip-sm">Overall: ${frDoc.scores?.OVERALL?.score ?? '-'}</div>
+          <div class="chip-sm">PFT: ${frDoc.scores?.PFT?.score ?? '-'}</div>
+          <div class="chip-sm">CFT: ${frDoc.scores?.CFT?.score ?? '-'}</div>
+        </div>
+        <div class="muted" style="margin-top:6px">Recent PRs</div>
+        <div class="chips" style="margin-top:6px">${(frDoc.recentPRs||[]).slice(-6).map(x=>`<div class='chip-sm'>${x.label} • ${x.unit==='sec'?fmtSecs(x.value):(x.unit==='xBW'?Number(x.value).toFixed(2):String(x.value))}</div>`).join('')}</div>
+      </div>
+    </div>`;
+  c.appendChild(wrap);
+}
 function drawCalendar(){
   // compute month with offset
   const base = new Date(); base.setMonth(base.getMonth()+CAL_OFFSET);
@@ -1719,7 +1767,7 @@ document.addEventListener('click',e=>{
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
   import {
     getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
-    getDocs, getDoc, query, where, orderBy, serverTimestamp, limit
+    getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
@@ -1849,6 +1897,9 @@ document.addEventListener('click',e=>{
     await setDoc(doc(db,'users',uid,'friends',friendUid),{uid:friendUid,addedAt:serverTimestamp()},{merge:true});
     return true;
   }
+  async function removeFriend(uid, friendUid){
+    try{ await deleteDoc(doc(db,'users',uid,'friends',friendUid)); return true; }catch{ return false; }
+  }
   async function listFriends(uid){
     const qy=query(friendsCol(uid), orderBy('addedAt','desc'));
     const snap=await getDocs(qy);
@@ -1895,6 +1946,38 @@ document.addEventListener('click',e=>{
     const scores = computeHeadlineScores(prs,std,SCORE_SETS);
     const recentPRs = recentPRsFromFSLogs(FS.logs||[]);
     await setDoc(pubDoc(user.uid), { ...base, scores, recentPRs }, {merge:true});
+  }
+
+  // --- Realtime squad subscriptions ---
+  const PUB_CACHE = {}; // uid -> usersPublic doc data
+  const PUB_UNSUBS = {}; // uid -> unsub
+  let FRIENDS_UNSUB = null;
+  function resubscribePublic(ids){
+    const set = new Set(ids);
+    // remove stale
+    Object.keys(PUB_UNSUBS).forEach(uid=>{ if(!set.has(uid)){ try{ PUB_UNSUBS[uid](); }catch{} delete PUB_UNSUBS[uid]; delete PUB_CACHE[uid]; } });
+    // add new
+    ids.forEach(uid=>{
+      if(PUB_UNSUBS[uid]) return;
+      PUB_UNSUBS[uid] = onSnapshot(pubDoc(uid),(snap)=>{ PUB_CACHE[uid]=snap.exists()?snap.data():null; try{ renderFireteam(); }catch{} });
+    });
+  }
+  function setupSquadRealtime(){
+    // clear existing
+    try{ Object.values(PUB_UNSUBS).forEach(u=>u()); }catch{}
+    for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k];
+    try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{}
+    FRIENDS_UNSUB=null;
+    const user=auth.currentUser; if(!user) return;
+    // subscribe friends list
+    FRIENDS_UNSUB = onSnapshot(friendsCol(user.uid),(snap)=>{
+      const ids=snap.docs.map(d=>d.id);
+      state = loadUserData(user.uid)||{}; state.fireteam=state.fireteam||{}; state.fireteam.friends=ids; saveUserData(user.uid,state);
+      resubscribePublic([user.uid,...ids]);
+      try{ renderFireteam(); }catch{}
+    });
+    // initial public subscribe with current state
+    resubscribePublic([user.uid,...(state.fireteam?.friends||[])]);
   }
 
   // --- Local FS state ---
@@ -1982,6 +2065,7 @@ document.addEventListener('click',e=>{
     }catch{}
     renderFs();
     try{ await publishPublicSummary(); }catch{}
+    try{ setupSquadRealtime(); }catch{}
   }
 
   // --- UI Actions ---
@@ -1990,6 +2074,9 @@ document.addEventListener('click',e=>{
   if(fsClearFilterBtn){ fsClearFilterBtn.onclick=()=>{ FS.currentDayId=null; FS.dateFilter=null; renderFs(); } }
   if(fsDayList){ fsDayList.addEventListener('click',async e=>{ const btn=e.target.closest('button'); if(!btn) return; const id=btn.dataset.id; const user=auth.currentUser; if(!user) return; const act=btn.dataset.act; if(act==='open'){ FS.currentDayId = id; renderFs(); } else if(act==='rename'){ const cur=FS.days.find(d=>d.id===id); const title=prompt('New title', cur?.title||'Test Day'); if(title!=null){ await updateTestDay(user.uid,id,{title}); await refreshFs(); } } else if(act==='delete'){ if(confirm('Delete this Test Day? Logs will remain (unlinked).')){ await deleteTestDay(user.uid,id); if(FS.currentDayId===id) FS.currentDayId=null; await refreshFs(); } } }); }
   if(fsAddLog){ fsAddLog.onclick=()=>{ openFsLogModal(); } }
+  // Remove friend from list
+  const fl = document.getElementById('friendsList');
+  if(fl){ fl.addEventListener('click', async (e)=>{ const b=e.target.closest('button[data-remove]'); if(!b) return; const friendUid=b.dataset.remove; const user=auth.currentUser; if(!user) return; if(confirm('Remove this friend?')){ await removeFriend(user.uid,friendUid); await refreshFs(); } }); }
 
   function openFsLogModal(log){
     const user=auth.currentUser; if(!user) return alert('Log in first');
