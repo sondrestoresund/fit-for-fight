@@ -1475,5 +1475,156 @@ document.addEventListener('click',e=>{
   if(target){ e.preventDefault(); goTestDay(); }
 });
 </script>
+<!-- Auth box (Firebase Email/Password) -->
+<section id="authBox" style="max-width:600px;margin:24px auto;padding:16px;border:1px solid #333;border-radius:10px">
+  <h3>Account</h3>
+  <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr">
+    <input id="email" placeholder="Email" autocomplete="email" style="grid-column:1 / span 2;padding:8px">
+    <input id="pass" placeholder="Password" type="password" autocomplete="current-password" style="grid-column:1 / span 2;padding:8px">
+    <button id="signup">Sign up</button>
+    <button id="login">Log in</button>
+    <button id="logout" style="grid-column:1 / span 2;display:none">Log out</button>
+  </div>
+  <p id="who" style="margin-top:8px;color:#aaa">Not signed in</p>
+  <p class="muted" style="margin-top:8px">Note: This auth is separate from the app's local login above.</p>
+  <p class="muted" style="margin-top:4px">Replace Firestore rules to restrict access per user.</p>
+</section>
+
+<!-- Workout log (per-user, Firestore) -->
+<section id="logBox" style="max-width:600px;margin:24px auto;padding:16px;border:1px solid #333;border-radius:10px;display:none">
+  <h3>Log a workout</h3>
+  <div style="display:grid;gap:8px;grid-template-columns:2fr 1fr 1fr">
+    <input id="exercise" placeholder="Exercise (eg Pullups)" style="grid-column:1 / span 3;padding:8px">
+    <input id="reps" type="number" placeholder="Reps" style="padding:8px">
+    <input id="weight" type="number" placeholder="Weight (lbs)" style="padding:8px">
+    <input id="notes" placeholder="Notes" style="grid-column:1 / span 3;padding:8px">
+    <button id="saveLog" style="grid-column:1 / span 3">Save</button>
+  </div>
+
+  <h4 style="margin-top:16px">Your recent logs</h4>
+  <ul id="logs" style="list-style:none;padding:0;margin:0;display:grid;gap:6px"></ul>
+</section>
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+  import { 
+    getAuth, onAuthStateChanged,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAmdJrCbHu8ux5W9vAosUTChSHIiN-16rA",
+    authDomain: "fit-for-fight-b28a1.firebaseapp.com",
+    projectId: "fit-for-fight-b28a1",
+    storageBucket: "fit-for-fight-b28a1.firebasestorage.app",
+    messagingSenderId: "815883203586",
+    appId: "1:815883203586:web:b18cd969ca6346aa5aa31b",
+    measurementId: "G-N6VX9Q7Y8F"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+
+  // --- Auth + Workout logs (Firestore) ---
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  // Grab elements
+  const email = document.getElementById("email");
+  const pass  = document.getElementById("pass");
+  const signupBtn = document.getElementById("signup");
+  const loginBtn  = document.getElementById("login");
+  const logoutBtn = document.getElementById("logout");
+  const who   = document.getElementById("who");
+  const authBox = document.getElementById("authBox");
+  const logBox  = document.getElementById("logBox");
+  const exercise = document.getElementById("exercise");
+  const reps     = document.getElementById("reps");
+  const weight   = document.getElementById("weight");
+  const notes    = document.getElementById("notes");
+  const saveLog  = document.getElementById("saveLog");
+  const logsUl   = document.getElementById("logs");
+
+  if (signupBtn && loginBtn && logoutBtn) {
+    // Auth actions
+    signupBtn.onclick = async () => {
+      try {
+        await createUserWithEmailAndPassword(auth, (email?.value||"").trim(), pass?.value||"");
+      } catch (e) { alert(e.message); }
+    };
+    loginBtn.onclick  = async () => {
+      try {
+        await signInWithEmailAndPassword(auth, (email?.value||"").trim(), pass?.value||"");
+      } catch (e) { alert(e.message); }
+    };
+    logoutBtn.onclick = async () => { await signOut(auth); };
+  }
+
+  if (saveLog) {
+    saveLog.onclick = async () => {
+      const user = auth.currentUser;
+      if (!user) return alert("Please log in first.");
+      const payload = {
+        exercise: (exercise?.value || "").trim(),
+        reps: Number(reps?.value || 0),
+        weight: Number(weight?.value || 0),
+        notes: (notes?.value || "").trim(),
+        ts: Date.now()
+      };
+      await addDoc(collection(db, "users", user.uid, "logs"), payload);
+      if (exercise) exercise.value = "";
+      if (reps) reps.value = "";
+      if (weight) weight.value = "";
+      if (notes) notes.value = "";
+      await loadLogs(user.uid);
+    };
+  }
+
+  async function loadLogs(uid){
+    if (!logsUl) return;
+    logsUl.innerHTML = "";
+    const q = query(collection(db, "users", uid, "logs"), orderBy("ts", "desc"));
+    const snap = await getDocs(q);
+    snap.forEach(doc => {
+      const d = doc.data();
+      const li = document.createElement("li");
+      li.style.padding = "8px";
+      li.style.border = "1px solid #333";
+      li.style.borderRadius = "8px";
+      const date = new Date(d.ts).toLocaleString();
+      li.textContent = `${date} - ${d.exercise || "Workout"}: ${d.reps || 0} reps @ ${d.weight || 0} lbs${d.notes ? " - " + d.notes : ""}`;
+      logsUl.appendChild(li);
+    });
+  }
+
+  onAuthStateChanged(auth, user => {
+    if (!who || !logoutBtn || !logBox || !authBox) return;
+    if (user) {
+      who.textContent = `Signed in as ${user.email}`;
+      logoutBtn.style.display = "inline-block";
+      logBox.style.display = "block";
+      authBox.querySelectorAll("input,button").forEach(el => {
+        if (el.id !== "logout") el.disabled = true;
+      });
+      loadLogs(user.uid);
+    } else {
+      who.textContent = "Not signed in";
+      logoutBtn.style.display = "none";
+      logBox.style.display = "none";
+      authBox.querySelectorAll("input,button").forEach(el => { el.disabled = false; });
+      if (logsUl) logsUl.innerHTML = "";
+    }
+  });
+</script>
 </body>
 </html>
