@@ -1570,15 +1570,7 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
     const email=$('#friendEmail')?.value?.trim()?.toLowerCase();
     const msg=$('#inviteMsg');
     if(!email){ if(msg) msg.textContent='Enter an email address'; return; }
-    const users=loadUsers(); const user=users[email];
-    if(!user){ if(msg) msg.textContent='No account found. Ask them to sign up or use Invite Code.'; return; }
-    if(user.uid===activeUID()){ if(msg) msg.textContent='That’s you!'; return; }
-    ensureFireteam();
-    if(state.fireteam.friends?.includes(user.uid)){ if(msg) msg.textContent='Already connected.'; return; }
-    state.fireteam.friends = [...(state.fireteam.friends||[]), user.uid];
-    saveUserData(activeUID(), state);
-    if(msg) msg.textContent=`Connected to ${user.name||email}`;
-    renderFireteam();
+    if(msg) msg.textContent='Email invites are not available yet. Ask your friend for their Invite Code and add them via the code field.';
   });
   // Exercise instructions modal
   document.addEventListener('click',(e)=>{
