@@ -250,6 +250,10 @@
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip-sm{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--grid);font-size:12px}
 
+  /* Calendar cells */
+  .cal-cell{transition:border-color .15s ease, box-shadow .15s ease}
+  .cal-cell.has-logs{border-color:#2bd9b8; box-shadow:0 0 0 2px rgba(43,217,184,.25) inset}
+
   /* Mobile sticky log */
   @media (max-width:700px){
     #stickyLogBtn{position:fixed;left:12px;right:12px;bottom:12px;z-index:50}
@@ -312,12 +316,9 @@
 <main class="container view" id="view-login">
   <div class="login-wrap">
     <section class="panel">
-      <h2>Log in or Create account</h2>
-      <label>Email</label><input id="authEmail" type="email" placeholder="you@example.com">
-      <label>Password</label><input id="authPass" type="password" placeholder="••••••••">
-      <div class="grid grid-2"><button class="btn" id="btnSignIn">Sign in</button><button class="btn secondary" id="btnCreate">Create account</button></div>
-      <div id="authError" class="muted" style="color:#ff9cae;margin-top:8px"></div>
-      <div class="muted" style="margin-top:8px">We use local, device-only storage for now. No guest mode.</div>
+      <h2>Sign In Required</h2>
+      <p class="muted">Please sign in using the Account box below to access the app.</p>
+      <button class="btn" id="goToAccount" style="margin-top:8px">Go to Account</button>
     </section>
     <section class="panel">
       <div class="hero" style="background-image:url('https://images.unsplash.com/photo-1521804906057-1df8fdb718b2?q=80&w=1600&auto=format&fit=crop');">
@@ -798,8 +799,13 @@ function renderMedalRow(container, medals, earnedLevels=[]){
 const views={"#/login":$("#view-login"),"#/home":$("#view-home"),"#/benchmarks":$("#view-benchmarks"),"#/progress":$("#view-progress"),"#/fireteam":$("#view-fireteam"),"#/about":$("#view-about")};
 function setActiveTab(route){$$("#navTabs .chip").forEach(ch=>ch.classList.toggle("active",ch.dataset.route===route))}
 function navigate(route){
-  const session=getSession();
-  if(!session && route!=="#/login"){location.hash="#/login";return;}
+  const authed = !!window.isFsAuthed; // require Firebase auth
+  if(!authed){
+    Object.values(views).forEach(v=>v.classList.remove("show"));
+    (views["#/login"]).classList.add("show");
+    setActiveTab("#/login");
+    return;
+  }
   Object.values(views).forEach(v=>v.classList.remove("show"));
   (views[route]||views["#/home"]).classList.add("show");
   setActiveTab(route);
@@ -812,51 +818,22 @@ function navigate(route){
 window.addEventListener("hashchange",()=>navigate(location.hash||"#/login"));
 
 /* Storage */
-const USERS_KEY="mcfit:users",SESSION_KEY="mcfit:session",DATA_PREFIX="mcfit:data:";
-function loadUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY)||"{}")}catch{return{}}}
-function saveUsers(u){localStorage.setItem(USERS_KEY,JSON.stringify(u))}
-function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}}
-function setSession(s){localStorage.setItem(SESSION_KEY,JSON.stringify(s))}
+const DATA_PREFIX="mcfit:data:";
 function dataKeyFor(uid){return DATA_PREFIX+(uid||"guest")}
 function loadUserData(uid){try{return JSON.parse(localStorage.getItem(dataKeyFor(uid))||'{"profile":{},"logs":[],"sessions":[],"selectedExercises":[]}')}catch{return{profile:{},logs:[],sessions:[],selectedExercises:[]}}}
 function saveUserData(uid,data){localStorage.setItem(dataKeyFor(uid),JSON.stringify(data))}
-function activeUID(){const s=getSession();return s?.uid||null}
+function activeUID(){return window.fsUid||null}
 function loadFriendData(uid){try{return JSON.parse(localStorage.getItem(DATA_PREFIX+uid)||'null')}catch{return null}}
 function dedupe(arr,keyFn){const seen=new Set();return arr.filter(x=>{const k=keyFn(x);if(seen.has(k)) return false;seen.add(k);return true;})}
 
-/* Auth */
-async function sha256(text){const enc=new TextEncoder().encode(text);const buf=await crypto.subtle.digest("SHA-256",enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("")}
+/* Local app state (per-Firebase user) */
 let state=loadUserData(activeUID());
-$("#btnSignIn").addEventListener("click",async ()=>{
-  const email=$("#authEmail").value.trim().toLowerCase(), pass=$("#authPass").value;
-  const users=loadUsers(), user=users[email];
-  if(!user){$("#authError").textContent="No account for this email.";return;}
-  const passHash=await sha256(pass); if(passHash!==user.passHash){$("#authError").textContent="Incorrect password.";return;}
-  setSession({uid:user.uid,email:user.email,name:user.name}); state=loadUserData(user.uid); onLoginOrCreate();
-});
-$("#btnCreate").addEventListener("click",async ()=>{
-  const email=$("#authEmail").value.trim().toLowerCase(), pass=$("#authPass").value;
-  if(!email||!pass){$("#authError").textContent="Email and password are required.";return;}
-  const users=loadUsers(); if(users[email]){$("#authError").textContent="Account already exists.";return;}
-  const passHash=await sha256(pass); const uid="u_"+Math.random().toString(36).slice(2,10); const name=email.split("@")[0];
-  users[email]={uid,name,email,passHash}; saveUsers(users); setSession({uid,email,name});
-  const guest=loadUserData(null), existing=loadUserData(uid);
-  saveUserData(uid,{...existing,profile:{...existing.profile,...guest.profile},logs:dedupe([...(existing.logs||[]),...(guest.logs||[])],x=>`${x.date}|${x.exercise}|${x.value}`),sessions:[...(existing.sessions||[]),...(guest.sessions||[])],selectedExercises:existing.selectedExercises?.length?existing.selectedExercises:(guest.selectedExercises||[])});
-  localStorage.removeItem(dataKeyFor(null)); state=loadUserData(uid); onLoginOrCreate(true);
-});
-function onLoginOrCreate(isNew=false){
-  hydrateProfileUI(); $("#profileMenu").style.display="";
-  const needsProfile=!state.profile?.name||!state.profile?.ageBracket||!state.profile?.sex;
-  const needsSelection=!state.selectedExercises||state.selectedExercises.length===0;
-  location.hash="#/home";
-  if(isNew||needsProfile) openProfileDropdown(true);
-  if(isNew||needsSelection) openPicker(true);
-}
-$("#signOut").addEventListener("click",()=>{setSession(null);$("#profileMenu").style.display="none";Object.values(views).forEach(v=>v.classList.remove("show"));$("#view-login").classList.add("show");setActiveTab("#/login")});
+// Sign out from profile dropdown uses Firebase signOut exposed by module
+$("#signOut").addEventListener("click",()=>{ try{ window.fsSignOut?.(); }catch{} });
 
 /* Fireteam helpers */
 function ensureFireteam(){state.fireteam=state.fireteam||{friends:[]};}
-function inviteCode(){const s=getSession(); return s?.uid||"-"}
+function inviteCode(){return activeUID()||"-"}
 function fireteamFriends(){ensureFireteam(); return state.fireteam.friends||[]}
 
 /* Profile UI */
@@ -892,6 +869,8 @@ function hydrateProfileUI(){
   $("#profileSummary").textContent =
     `PROFILE: ${p.name||"-"}${p.weightLb?` — ${Math.round(p.weightLb)} lb`:""}`;
 }
+// Smooth scroll to the Account box from login view
+on('#goToAccount','click',()=>{ document.getElementById('authBox')?.scrollIntoView({behavior:'smooth',block:'start'}); });
 $("#p_units").addEventListener("change",()=>{
   const val = $("#p_units").value;
   if(val==="metric"){ $("#blk_metric").style.display=""; $("#blk_imperial").style.display="none"; }
@@ -1441,7 +1420,7 @@ function renderFireteam(){
   $("#inviteCode").textContent = inviteCode();
   // Leaderboard (Overall/PFT/CFT simplified to Overall)
   const uids=[inviteCode(),...fireteamFriends()];
-  const ranks=uids.map(uid=>{const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); let ptsSum=0,cnt=0; rows.forEach(r=>{const best=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); if(best){const {pts}=tierAndPoints5(r.dir,best.value,r.prospect,r.std,r.strong,r.elite,r.max); if(!isNaN(pts)){ptsSum+=pts;cnt++;}}}); const score=cnt?Math.round(ptsSum/cnt):0; const name=(loadUsers()||{})[Object.keys(loadUsers()||{}).find(k=>{const u=(loadUsers()||{})[k]; return u.uid===uid})||'']?.name || (uid===inviteCode()? (getSession()?.name||'You') : (loadFriendData(uid)?.profile?.name||'Friend')); return {uid,name,score};});
+  const ranks=uids.map(uid=>{const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); let ptsSum=0,cnt=0; rows.forEach(r=>{const best=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); if(best){const {pts}=tierAndPoints5(r.dir,best.value,r.prospect,r.std,r.strong,r.elite,r.max); if(!isNaN(pts)){ptsSum+=pts;cnt++;}}}); const score=cnt?Math.round(ptsSum/cnt):0; const name= uid===inviteCode()? (loadUserData(activeUID())?.profile?.name||'You') : (loadFriendData(uid)?.profile?.name||'Friend'); return {uid,name,score};});
   ranks.sort((a,b)=>b.score-a.score); const lb=$("#ftLeaderboard"); lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${r.name}: ${r.score}`; lb.appendChild(chip)});
   // PR Feed
   const feed=$("#ftFeed"); feed.innerHTML=""; const items=[]; fireteamFriends().forEach(uid=>{const data=loadFriendData(uid)||{}; if(data.profile && data.profile.sharePRs===false) return; (data.logs||[]).filter(l=>l.isPR).forEach(l=>items.push({...l,uid}))}); items.sort((a,b)=>b.date.localeCompare(a.date)); items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${loadFriendData(it.uid)?.profile?.name||'Friend'} hit PR: ${it.label.split(' — ')[1]} • ${it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value))} • ${fmtDate(it.date)}`; feed.appendChild(chip)});
@@ -1496,16 +1475,19 @@ function drawCalendar(){
 
   for(let d=1; d<=days; d++){
     const cell=document.createElement("div");
-    cell.className="panel";
+    cell.className="panel cal-cell";
     cell.style.padding="8px";
 
     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const has = sessions.find(s=>s.date===dateStr);
     const dayMatch = (x)=>{ const dt=new Date(x.date?.toDate?x.date.toDate():x.date); return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; };
     const fsDay = FSDAYS.find(dayMatch);
-    const logsCount = FSLOGS.filter(l=>{ const dt=new Date(l.date?.toDate?l.date.toDate():l.date); if(isNaN(dt)) return false; return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; }).length;
+    const logsCountFS = FSLOGS.filter(l=>{ const dt=new Date(l.date?.toDate?l.date.toDate():l.date); if(isNaN(dt)) return false; return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; }).length;
+    const logsCountLocal = (state.logs||[]).filter(l=>{ const dt=new Date(l.date); if(isNaN(dt)) return false; return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; }).length;
+    const logsCount = logsCountFS + logsCountLocal;
 
     const tag = has || fsDay ? '<span class="badge b-strong">Test</span>' : (logsCount?`<span class="badge">${logsCount} logs</span>`:'');
+    if(has || fsDay || logsCount>0) cell.classList.add('has-logs');
     const sub = has ? `<div class="muted" style="margin-top:6px">Avg: <b>${has.avgPts}</b></div>` : '';
 
     cell.innerHTML = `
@@ -1518,15 +1500,19 @@ function drawCalendar(){
 
     cell.style.cursor='pointer';
     cell.addEventListener('click',()=>{
-      // Prefer cloud modal if available
-      if(window.openFsLogModal){
-        if(fsDay && window.setFsCurrentDayId){ window.setFsCurrentDayId(fsDay.id); }
-        else if(window.setFsDateFilter){ window.setFsDateFilter(dateStr); }
-        window.openFsLogModal({date:new Date(dateStr), testDayId: fsDay?.id||null});
+      // Prefer list view; open modal to add if empty
+      if(window.openFsLogModal && window.isFsAuthed){
+        if(window.setFsDateFilter) window.setFsDateFilter(dateStr);
+        // If there are no logs yet for this date, open the modal prefilled
+        if(logsCount===0){
+          window.openFsLogModal({date:new Date(dateStr), testDayId: fsDay?.id||null});
+        }
+        // Bring cloud logs section into view
+        try{ document.getElementById('logBox')?.scrollIntoView({behavior:'smooth', block:'start'}); }catch{}
       } else if(has){
         alert(`Test Day ${fmtDate(dateStr)}\nAverage: ${has.avgPts}\nEntries: ${has.entries.length}`);
       } else {
-        alert(`${fmtDate(dateStr)}\nNo Test Day. Use cloud logs to add entries.`);
+        alert(`${fmtDate(dateStr)}\nSign in (Account box) to add/edit logs for this day.`);
       }
     });
 
@@ -1558,8 +1544,9 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
 
 /* Init */
 (function init(){
-  const s=getSession(); if(s){ $("#profileMenu").style.display=""; try{hydrateProfileUI()}catch{}}
-  const target=s?"#/home":"#/login"; if(!location.hash) location.hash=target; navigate(location.hash);
+  // Always start at login until Firebase auth confirms
+  if(!location.hash) location.hash = "#/login";
+  navigate(location.hash);
   // Fireteam UI events
   on('#addFriend','click',()=>{const code=$('#friendCode')?.value?.trim(); if(!code){const m=$('#friendMsg'); if(m) m.textContent='Enter a code';return;} ensureFireteam(); if(!state.fireteam.friends.includes(code)){ state.fireteam.friends.push(code); saveUserData(activeUID(),state); const m=$('#friendMsg'); if(m) m.textContent='Friend added.'; } else { const m=$('#friendMsg'); if(m) m.textContent='Already added.' }
     renderFireteam(); });
@@ -1732,6 +1719,9 @@ document.addEventListener('click',e=>{
   // --- Auth + Workout logs (Firestore) ---
   const auth = getAuth(app);
   const db   = getFirestore(app);
+  // expose auth state to non-module calendar code
+  window.isFsAuthed = false;
+  window.fsUid = null;
 
   // Grab elements
   const email = document.getElementById("email");
@@ -1937,25 +1927,36 @@ document.addEventListener('click',e=>{
   if(fsLogList){ fsLogList.addEventListener('click',async e=>{ const b=e.target.closest('button'); if(!b) return; const user=auth.currentUser; if(!user) return; if(b.dataset.edit){ const id=b.dataset.edit; const log=FS.logs.find(x=>x.id===id); openFsLogModal(log); } else if(b.dataset.del){ const id=b.dataset.del; if(confirm('Delete this log?')){ await deleteLog(user.uid,id); await refreshFs(); } } }); }
 
   onAuthStateChanged(auth, async user => {
+    window.isFsAuthed = !!user;
+    window.fsUid = user ? user.uid : null;
     if (!who || !logoutBtn || !logBox || !authBox) return;
     if (user) {
       who.textContent = `Signed in as ${user.email}`;
       logoutBtn.style.display = "inline-block";
       logBox.style.display = "block";
+      // show profile menu and hydrate
+      const pm = document.getElementById('profileMenu'); if(pm) pm.style.display='';
+      try { window.state = loadUserData(window.fsUid); hydrateProfileUI(); } catch {}
       authBox.querySelectorAll("input,button").forEach(el => {
         if (el.id !== "logout") el.disabled = true;
       });
       await refreshFs();
+      try{ window.navigate && window.navigate("#/home"); }catch{}
     } else {
       who.textContent = "Not signed in";
       logoutBtn.style.display = "none";
       logBox.style.display = "none";
+      const pm = document.getElementById('profileMenu'); if(pm) pm.style.display='none';
       authBox.querySelectorAll("input,button").forEach(el => { el.disabled = false; });
       if (fsLogList) fsLogList.innerHTML = "";
       FS_LOGS=[];
       try{ renderBenchmarks(); renderHome(); renderProgress(); }catch{}
+      try{ window.navigate && window.navigate("#/login"); }catch{}
     }
   });
+
+  // expose sign-out for profile dropdown
+  window.fsSignOut = () => signOut(auth);
 </script>
 </body>
 </html>
