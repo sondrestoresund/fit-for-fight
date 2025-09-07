@@ -904,6 +904,7 @@ $("#saveProfile").addEventListener("click",()=>{
     sharePRs: $("#p_share").value!=="no"
   };
   state.profile=p; saveUserData(activeUID(),state); hydrateProfileUI(); profileDropdown.classList.remove("show"); renderHome(); renderBenchmarks(); renderProgress();
+  try{ ensureDirectory(auth.currentUser); publishPublicSummary(); }catch{}
 });
 $("#openExercisePicker").addEventListener("click",()=>openPicker());
 
@@ -1415,17 +1416,23 @@ function renderProgress(){
 }
 
 /* Fireteam view */
-function renderFireteam(){
+async function renderFireteam(){
   ensureFireteam();
   $("#inviteCode").textContent = inviteCode();
-  // Leaderboard (Overall/PFT/CFT simplified to Overall)
-  const uids=[inviteCode(),...fireteamFriends()];
-  const ranks=uids.map(uid=>{const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); let ptsSum=0,cnt=0; rows.forEach(r=>{const best=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); if(best){const {pts}=tierAndPoints5(r.dir,best.value,r.prospect,r.std,r.strong,r.elite,r.max); if(!isNaN(pts)){ptsSum+=pts;cnt++;}}}); const score=cnt?Math.round(ptsSum/cnt):0; const name= uid===inviteCode()? (loadUserData(activeUID())?.profile?.name||'You') : (loadFriendData(uid)?.profile?.name||'Friend'); return {uid,name,score};});
-  ranks.sort((a,b)=>b.score-a.score); const lb=$("#ftLeaderboard"); lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${r.name}: ${r.score}`; lb.appendChild(chip)});
-  // PR Feed
-  const feed=$("#ftFeed"); feed.innerHTML=""; const items=[]; fireteamFriends().forEach(uid=>{const data=loadFriendData(uid)||{}; if(data.profile && data.profile.sharePRs===false) return; (data.logs||[]).filter(l=>l.isPR).forEach(l=>items.push({...l,uid}))}); items.sort((a,b)=>b.date.localeCompare(a.date)); items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${loadFriendData(it.uid)?.profile?.name||'Friend'} hit PR: ${it.label.split(' — ')[1]} • ${it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value))} • ${fmtDate(it.date)}`; feed.appendChild(chip)});
-  // Compare options
-  const cmp=$("#compareWith"); cmp.innerHTML = fireteamFriends().map(uid=>`<option value="${uid}">${loadFriendData(uid)?.profile?.name||'Friend'}</option>`).join('');
+  const me=activeUID();
+  const uids=[me,...fireteamFriends()].filter(Boolean);
+  // Fetch public docs
+  const docs = await Promise.all(uids.map(uid=>getDoc(pubDoc(uid)).then(s=>({uid, doc:s.exists()?s.data():null})).catch(()=>({uid,doc:null}))));
+  // Leaderboard by OVERALL score
+  const ranks = docs.map(({uid,doc})=>({ uid, name: doc?.name || (uid===me?'You':'Friend'), score: doc?.scores?.OVERALL?.score || 0 })).sort((a,b)=>b.score-a.score);
+  const lb=$("#ftLeaderboard"); lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.textContent=`${r.name}: ${r.score}`; lb.appendChild(chip)});
+  // PR Feed from recentPRs
+  const feed=$("#ftFeed"); feed.innerHTML=""; const items=[];
+  docs.forEach(({uid,doc})=>{ if(!doc || doc.sharePRs===false) return; (doc.recentPRs||[]).forEach(x=>items.push({uid,name:doc.name||'Friend',label:x.label,value:x.value,unit:x.unit,date:x.date})) });
+  items.sort((a,b)=>b.date.localeCompare(a.date));
+  items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; const val= it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value)); chip.textContent=`${it.name} • PR: ${it.label} • ${val} • ${fmtDate(it.date)}`; feed.appendChild(chip)});
+  // Compare list (names from directory/public)
+  const cmp=$("#compareWith"); cmp.innerHTML = docs.filter(d=>d.uid!==me).map(({uid,doc})=>`<option value="${uid}">${doc?.name||'Friend'}</option>`).join('');
   cmp.addEventListener('change',()=>renderCompare(cmp.value),{once:true}); if(cmp.value) renderCompare(cmp.value);
 }
 function renderCompare(uid){const data=loadFriendData(uid)||{}; const rows=filterRows(buildModel()); const tbl=document.createElement('table'); tbl.innerHTML='<thead><tr><th>Exercise</th><th>You</th><th>Friend</th></tr></thead>'; const body=document.createElement('tbody'); rows.forEach(r=>{const you=bestFor(r); const friend=(data.logs||[]).filter(l=>l.exercise===exerciseKey(r)).reduce((b,l)=>{if(!b) return l; return r.dir==='higher'?(l.value>(b.value||-Infinity)?l:b):(l.value<(b.value||Infinity)?l:b)},null); const tr=document.createElement('tr'); const fmt=v=>v==null?'-':(r.unit==='sec'?fmtSecs(v):(r.unit==='xBW'?Number(v).toFixed(2):String(v))); tr.innerHTML=`<td>${r.name.split(' (')[0]}</td><td>${fmt(you?.value)}</td><td>${fmt(friend?.value)}</td>`; body.appendChild(tr)}); tbl.appendChild(body); const c=$("#compareTable"); c.innerHTML=''; c.appendChild(tbl)}
@@ -1800,6 +1807,7 @@ document.addEventListener('click',e=>{
   const logsCol  = (uid) => collection(db, 'users', uid, 'logs');
   const daysCol  = (uid) => collection(db, 'users', uid, 'testDays');
   const dirCol   = () => collection(db, 'directory');
+  const pubDoc   = (uid) => doc(db, 'usersPublic', uid);
   const friendsCol = (uid) => collection(db, 'users', uid, 'friends');
 
   async function createLog(uid,payload){
@@ -1845,6 +1853,48 @@ document.addEventListener('click',e=>{
     const qy=query(friendsCol(uid), orderBy('addedAt','desc'));
     const snap=await getDocs(qy);
     return snap.docs.map(d=>d.id);
+  }
+
+  // --- Public summary computation & publish ---
+  function recognizedRowForName(name){ return buildModel().find(r=>r.name===name); }
+  function valueFromLogForRow(log,row){
+    if(!row) return null;
+    if(row.unit==='reps') return (typeof log.reps==='number')?log.reps:null;
+    if(row.unit==='sec') return (typeof log.timeSec==='number')?log.timeSec:null;
+    if(row.unit==='m') return (typeof log.distance==='number')?log.distance:null; // placeholder if used later
+    return null;
+  }
+  function prsMapFromFSLogs(logs){
+    const map={};
+    const rows=buildModel();
+    logs.forEach(l=>{ const row=recognizedRowForName(l.exercise); if(!row) return; const key=nameToKey(row.name); const v=valueFromLogForRow(l,row); if(v==null) return; if(map[key]==null){ map[key]=v; } else { map[key] = row.dir==='higher' ? Math.max(map[key],v) : Math.min(map[key],v); } });
+    return map;
+  }
+  function recentPRsFromFSLogs(logs){
+    const rows=buildModel();
+    const best={}; const out=[];
+    const sorted=logs.slice().sort((a,b)=>{
+      const da = a.date?.toDate? a.date.toDate() : new Date(a.date);
+      const db = b.date?.toDate? b.date.toDate() : new Date(b.date);
+      return da-db;
+    });
+    sorted.forEach(l=>{
+      const row=recognizedRowForName(l.exercise); if(!row) return; const key=nameToKey(row.name); const v=valueFromLogForRow(l,row); if(v==null) return;
+      const prev=best[key]; const better = prev==null ? true : (row.dir==='higher'? v>prev : v<prev);
+      if(better){ best[key]=v; out.push({ label: row.name, value: v, unit: row.unit, date: (l.date?.toDate? l.date.toDate() : new Date(l.date)).toISOString().slice(0,10) }); }
+    });
+    return out.slice(-12); // last 12
+  }
+  async function publishPublicSummary(){
+    const user=auth.currentUser; if(!user) return;
+    const share = !!(loadUserData(user.uid)?.profile?.sharePRs);
+    const base={ uid:user.uid, name:(loadUserData(user.uid)?.profile?.name)|| (user.email||'').split('@')[0] || 'User', sharePRs:share, updatedAt:serverTimestamp(), emailLower:(user.email||'').toLowerCase() };
+    if(!share){ await setDoc(pubDoc(user.uid), base, {merge:true}); return; }
+    const prs = prsMapFromFSLogs(FS.logs||[]);
+    const std = standardsFromModel(buildModel());
+    const scores = computeHeadlineScores(prs,std,SCORE_SETS);
+    const recentPRs = recentPRsFromFSLogs(FS.logs||[]);
+    await setDoc(pubDoc(user.uid), { ...base, scores, recentPRs }, {merge:true});
   }
 
   // --- Local FS state ---
@@ -1931,6 +1981,7 @@ document.addEventListener('click',e=>{
       saveUserData(user.uid,state);
     }catch{}
     renderFs();
+    try{ await publishPublicSummary(); }catch{}
   }
 
   // --- UI Actions ---
