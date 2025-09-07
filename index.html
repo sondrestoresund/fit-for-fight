@@ -1548,8 +1548,22 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   if(!location.hash) location.hash = "#/login";
   navigate(location.hash);
   // Fireteam UI events
-  on('#addFriend','click',()=>{const code=$('#friendCode')?.value?.trim(); if(!code){const m=$('#friendMsg'); if(m) m.textContent='Enter a code';return;} ensureFireteam(); if(!state.fireteam.friends.includes(code)){ state.fireteam.friends.push(code); saveUserData(activeUID(),state); const m=$('#friendMsg'); if(m) m.textContent='Friend added.'; } else { const m=$('#friendMsg'); if(m) m.textContent='Already added.' }
-    renderFireteam(); });
+  on('#addFriend','click',async ()=>{
+    const code=$('#friendCode')?.value?.trim();
+    const m=$('#friendMsg');
+    const user = typeof auth!=='undefined' ? (auth.currentUser||null) : null;
+    if(!code){ if(m) m.textContent='Enter a code'; return; }
+    if(!user){ if(m) m.textContent='Sign in first.'; return; }
+    if(code===user.uid){ if(m) m.textContent='That’s you!'; return; }
+    try{
+      const fr = await listFriends(user.uid);
+      if(fr.includes(code)){ if(m) m.textContent='Already added.'; return; }
+      await addFriend(user.uid, code);
+      if(m) m.textContent='Friend added.';
+      await refreshFs();
+      renderFireteam();
+    }catch{ if(m) m.textContent='Could not add friend.'; }
+  });
   if(location.hash==="#/fireteam") renderFireteam();
   // Ring info modal
   const openInfo=(title,body)=>{const m=$('#infoModal'); $('#infoTitle').textContent=title; $('#infoBody').textContent=body; m.style.display='flex'};
@@ -1566,11 +1580,22 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   // Add Squad CTA on Home
   on('#ctaAddSquad','click',()=>{ location.hash='#/fireteam'; setTimeout(()=>$('#friendCode')?.focus(), 250); });
   // Invite by Email in Squad
-  on('#inviteByEmail','click',()=>{
+  on('#inviteByEmail','click',async ()=>{
     const email=$('#friendEmail')?.value?.trim()?.toLowerCase();
     const msg=$('#inviteMsg');
+    const user = typeof auth!=='undefined' ? (auth.currentUser||null) : null;
     if(!email){ if(msg) msg.textContent='Enter an email address'; return; }
-    if(msg) msg.textContent='Email invites are not available yet. Ask your friend for their Invite Code and add them via the code field.';
+    if(!user){ if(msg) msg.textContent='Sign in first.'; return; }
+    try{
+      const uid2 = await findUidByEmail(email);
+      if(!uid2){ if(msg) msg.textContent='No account found for that email.'; return; }
+      if(uid2===user.uid){ if(msg) msg.textContent='That’s you!'; return; }
+      const fr = await listFriends(user.uid);
+      if(fr.includes(uid2)){ if(msg) msg.textContent='Already connected.'; return; }
+      await addFriend(user.uid, uid2);
+      if(msg) msg.textContent='Connected.';
+      await refreshFs();
+    }catch(e){ if(msg) msg.textContent='Error connecting. Try again.'; }
   });
   // Exercise instructions modal
   document.addEventListener('click',(e)=>{
@@ -1686,8 +1711,8 @@ document.addEventListener('click',e=>{
     createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
   import {
-    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
-    getDocs, getDoc, query, where, orderBy, serverTimestamp
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
+    getDocs, getDoc, query, where, orderBy, serverTimestamp, limit
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
@@ -1774,6 +1799,8 @@ document.addEventListener('click',e=>{
   const userRef = (uid) => doc(db, 'users', uid);
   const logsCol  = (uid) => collection(db, 'users', uid, 'logs');
   const daysCol  = (uid) => collection(db, 'users', uid, 'testDays');
+  const dirCol   = () => collection(db, 'directory');
+  const friendsCol = (uid) => collection(db, 'users', uid, 'friends');
 
   async function createLog(uid,payload){
     return addDoc(logsCol(uid),{...payload,date:toTimestamp(payload.date),createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
@@ -1789,6 +1816,36 @@ document.addEventListener('click',e=>{
   async function updateTestDay(uid,dayId,updates){ return updateDoc(doc(db,'users',uid,'testDays',dayId),{...updates,...(updates.date?{date:toTimestamp(updates.date)}:{}),updatedAt:serverTimestamp()}); }
   async function deleteTestDay(uid,dayId){ return deleteDoc(doc(db,'users',uid,'testDays',dayId)); }
   async function listTestDays(uid){ const qy=query(daysCol(uid),orderBy('date','desc')); const snap=await getDocs(qy); return snap.docs.map(d=>({id:d.id,...d.data()})); }
+
+  // --- Directory + Friends ---
+  async function ensureDirectory(user){
+    if(!user) return;
+    const ref = doc(db,'directory',user.uid);
+    await setDoc(ref,{
+      uid:user.uid,
+      emailLower:(user.email||'').toLowerCase(),
+      name:(loadUserData(user.uid)?.profile?.name) || (user.email||'').split('@')[0] || 'User',
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    },{merge:true});
+  }
+  async function findUidByEmail(email){
+    const emailLower=String(email||'').toLowerCase();
+    if(!emailLower) return null;
+    const qy=query(dirCol(), where('emailLower','==',emailLower), limit(1));
+    const snap=await getDocs(qy);
+    if(snap.empty) return null; return snap.docs[0].id;
+  }
+  async function addFriend(uid, friendUid){
+    if(!uid||!friendUid||uid===friendUid) return false;
+    await setDoc(doc(db,'users',uid,'friends',friendUid),{uid:friendUid,addedAt:serverTimestamp()},{merge:true});
+    return true;
+  }
+  async function listFriends(uid){
+    const qy=query(friendsCol(uid), orderBy('addedAt','desc'));
+    const snap=await getDocs(qy);
+    return snap.docs.map(d=>d.id);
+  }
 
   // --- Local FS state ---
   const FS={ user:null, days:[], logs:[], currentDayId:null, dateFilter:null, editingLogId:null };
@@ -1865,6 +1922,14 @@ document.addEventListener('click',e=>{
     const user=auth.currentUser; if(!user) return;
     FS.days = await listTestDays(user.uid);
     FS.logs = await listAllLogs(user.uid);
+    // sync friends list from Firestore for use across the app
+    try{
+      const fr = await listFriends(user.uid);
+      state = loadUserData(user.uid) || {};
+      state.fireteam = state.fireteam || {};
+      state.fireteam.friends = fr;
+      saveUserData(user.uid,state);
+    }catch{}
     renderFs();
   }
 
@@ -1923,6 +1988,8 @@ document.addEventListener('click',e=>{
     window.fsUid = user ? user.uid : null;
     if (!who || !logoutBtn || !logBox || !authBox) return;
     if (user) {
+      // Ensure directory entry exists for email lookup
+      try{ await ensureDirectory(user); }catch{}
       who.textContent = `Signed in as ${user.email}`;
       logoutBtn.style.display = "inline-block";
       logBox.style.display = "block";
