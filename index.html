@@ -248,7 +248,10 @@
 
   /* PR timeline chips */
   .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip-sm{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--grid);font-size:12px}
+  .chip-sm{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--grid);font-size:12px}
+
+  /* Avatar bubbles */
+  .avatar{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font:800 12px Inter;box-shadow:0 1px 2px rgba(0,0,0,.35)}
 
   /* Calendar cells */
   .cal-cell{transition:border-color .15s ease, box-shadow .15s ease}
@@ -342,7 +345,7 @@
   <section class="panel">
     <h2>Squad</h2>
     <div class="grid grid-3">
-      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div></div>
+      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div><div style="display:flex;gap:8px;margin-top:8px"><button class="rowbtn" id="copyInvite">Copy</button><button class="rowbtn" id="shareInvite">Share</button></div><div id="inviteCopyMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Add Friend</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendCode" placeholder="Enter code"><button class="btn" id="addFriend">Connect</button></div><div id="friendMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Invite by Email</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendEmail" type="email" placeholder="friend@example.com"><button class="btn" id="inviteByEmail">Invite</button></div><div id="inviteMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Leaderboard</h3><div id="ftLeaderboard" style="margin-top:6px" class="chips"></div></div>
@@ -538,7 +541,10 @@
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 // Safe event binder: no-op if element missing
 const on=(sel,ev,fn,opts)=>{const el=$(sel); if(el) el.addEventListener(ev,fn,opts)};
-const secs=(m,s)=>m*60+s;
+  const secs=(m,s)=>m*60+s;
+  // Avatars
+  function hashCode(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return Math.abs(h); }
+  function avatarHTML(name, uid){ const ini=((name||'U').trim()[0]||'U').toUpperCase(); const colors=['#2bd9b8','#6aa9ff','#f3c355','#ff6aa9','#79c389','#6fc2d0']; const idx=hashCode(String(uid||name||'x'))%colors.length; const bg=colors[idx]; return `<span class="avatar" style="background:${bg};color:#0b1311">${ini}</span>`; }
 // Calendar month offset control (0 = current month)
 let CAL_OFFSET = 0;
 const fmtSecs=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return `${m}:${String(s).padStart(2,'0')}`;}
@@ -1439,7 +1445,7 @@ async function renderFireteam(){
     friends.forEach(uid=>{
       const d=(docs.find(x=>x.uid===uid)?.doc)||{}; const name=d?.name||uid.slice(0,6);
       const li=document.createElement('li'); li.className='panel'; li.style.padding='8px'; li.style.display='flex'; li.style.justifyContent='space-between'; li.style.alignItems='center';
-      li.innerHTML=`<div>${name}</div><div><button class='rowbtn' data-remove='${uid}'>Remove</button></div>`;
+      li.innerHTML=`<div style="display:flex;align-items:center;gap:8px">${avatarHTML(name,uid)}<span>${name}</span></div><div><button class='rowbtn' data-remove='${uid}'>Remove</button></div>`;
       fl.appendChild(li);
     });
   }
@@ -1448,7 +1454,7 @@ async function renderFireteam(){
   const feed=$("#ftFeed"); feed.innerHTML=""; const items=[];
   docs.forEach(({uid,doc})=>{ if(!doc || doc.sharePRs===false) return; (doc.recentPRs||[]).forEach(x=>items.push({uid,name:doc.name||'Friend',label:x.label,value:x.value,unit:x.unit,date:x.date})) });
   items.sort((a,b)=>b.date.localeCompare(a.date));
-  items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; const val= it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value)); chip.textContent=`${it.name} • PR: ${it.label} • ${val} • ${fmtDate(it.date)}`; feed.appendChild(chip)});
+  items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; const val= it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value)); chip.innerHTML=`${avatarHTML(it.name,it.uid)}<span>${it.name} • PR: ${it.label} • ${val} • ${fmtDate(it.date)}</span>`; feed.appendChild(chip)});
   // Compare list (names from directory/public)
   const cmp=$("#compareWith"); cmp.innerHTML = docs.filter(d=>d.uid!==me).map(({uid,doc})=>`<option value="${uid}">${doc?.name||'Friend'}</option>`).join('');
   cmp.addEventListener('change',()=>renderCompare(cmp.value),{once:true}); if(cmp.value) renderCompare(cmp.value);
@@ -1634,6 +1640,9 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   });
   // Add Squad CTA on Home
   on('#ctaAddSquad','click',()=>{ location.hash='#/fireteam'; setTimeout(()=>$('#friendCode')?.focus(), 250); });
+  // Invite code actions
+  on('#copyInvite','click',async ()=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); const m=$('#inviteCopyMsg'); if(m) m.textContent='Code copied to clipboard.'; }catch{ const m=$('#inviteCopyMsg'); if(m) m.textContent='Copy failed.'; }});
+  on('#shareInvite','click',async ()=>{ const code=inviteCode(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: location.origin}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); const m=$('#inviteCopyMsg'); if(m) m.textContent='Share data copied to clipboard.'; } }catch{} });
   // Invite by Email in Squad
   on('#inviteByEmail','click',async ()=>{
     const email=$('#friendEmail')?.value?.trim()?.toLowerCase();
