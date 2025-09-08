@@ -350,7 +350,7 @@
   <section class="panel">
     <h2>Squad</h2>
     <div class="grid grid-3">
-      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div><div style="display:flex;gap:8px;margin-top:8px"><button class="rowbtn" id="copyInvite">Copy</button><button class="rowbtn" id="copyInviteLink">Copy Link</button><button class="rowbtn" id="shareInvite">Share</button></div><div id="inviteCopyMsg" class="muted" style="margin-top:6px"></div></div>
+      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="rowbtn" id="copyInvite">Copy</button><button class="rowbtn" id="copyInviteLink">Copy Link</button><button class="rowbtn" id="copyInviteAutoLink">Copy Auto Link</button><button class="rowbtn" id="shareInvite">Share</button></div><div id="inviteCopyMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Add Friend</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendCode" placeholder="Enter code"><button class="btn" id="addFriend">Connect</button></div><div id="friendMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Invite by Email</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendEmail" type="email" placeholder="friend@example.com"><button class="btn" id="inviteByEmail">Invite</button></div><div id="inviteMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Leaderboard</h3><div id="ftLeaderboard" style="margin-top:6px" class="chips"></div></div>
@@ -555,6 +555,7 @@ function showToast(msg){ try{ const t=document.createElement('div'); t.className
 function showToastAction(msg,label,action){ try{ const t=document.createElement('div'); t.className='app-toast'; const span=document.createElement('span'); span.textContent=msg; const a=document.createElement('span'); a.className='toast-act'; a.textContent=label; a.onclick=()=>{ try{ action?.(); }finally{ t.classList.remove('show'); setTimeout(()=>t.remove(),200);} }; t.appendChild(span); t.appendChild(a); document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 4000); }catch{} }
 // Deep-link helpers
 function inviteLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}`; }
+function inviteAutoLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}&auto=1`; }
 function parseInviteParams(h){ try{ const q=h.split('?')[1]||''; const p=new URLSearchParams(q); return { code: p.get('code'), auto: p.get('auto')==='1' }; }catch{ return {code:null,auto:false} } }
 function parseInviteFromHash(h){ return parseInviteParams(h).code }
 // Calendar month offset control (0 = current month)
@@ -1674,6 +1675,7 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   // Invite code actions
   on('#copyInvite','click',async ()=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); showToastAction('Invite code copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
   on('#copyInviteLink','click',async ()=>{ const link=inviteLink(); try{ await navigator.clipboard.writeText(link); showToastAction('Invite link copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
+  on('#copyInviteAutoLink','click',async ()=>{ const link=inviteAutoLink(); try{ await navigator.clipboard.writeText(link); showToastAction('Auto-invite link copied', 'Open Squad', ()=>{ location.hash=`#/fireteam?code=${inviteCode()}&auto=1`; }); }catch{ showToast('Copy failed'); } });
   on('#shareInvite','click',async ()=>{ const code=inviteCode(); const link=inviteLink(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: link}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); showToastAction('Share text copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); } }catch{} });
   // Invite by Email in Squad
   on('#inviteByEmail','click',async ()=>{
