@@ -91,8 +91,4 @@ function computeCategoryScore(prs,standards,requiredKeys){ const n=requiredKeys.
 export function computeHeadlineScores(prs,standards,scoreSets){ const p=computeCategoryScore(prs,standards,scoreSets.pft); const c=computeCategoryScore(prs,standards,scoreSets.cft); const overallRaw=(p.raw+c.raw)/2; const overallCoverage=(p.logged+c.logged)/(p.required+c.required||1); const overall=Math.round(overallRaw*overallCoverage); return {PFT:{score:Math.round(p.raw*p.coverage),raw:p.raw,coverage:p.coverage}, CFT:{score:Math.round(c.raw*c.coverage),raw:c.raw,coverage:c.coverage}, OVERALL:{score:overall,raw:overallRaw,coverage:overallCoverage}}; }
 export const SCORE_SETS={pft:['pullups','pushups','mile_3'], cft:['ammo_2min','run_800m','farmers_carry']};
 
-// Bridge to window for classic code temporary
-try{
-  window.nameToKey=nameToKey; window.standardsFromModel=standardsFromModel; window.buildModel=buildModel; window.tierAndPoints5=tierAndPoints5; window.tierClass=tierClass; window.bandForTier=bandForTier; window.exerciseKey=exerciseKey; window.bestFor=bestFor; window.filterRows=filterRows; window.computeHeadlineScores=computeHeadlineScores; window.SCORE_SETS=SCORE_SETS;
-}catch{}
-
+// No global bridges

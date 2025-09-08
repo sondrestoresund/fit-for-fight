@@ -1,11 +1,14 @@
-// progress.js — extracted without behavior changes
+// progress.js — module implementation
+import { buildModel, filterRows, tierAndPoints5, bandForTier, exerciseKey } from './model.js';
+import { state } from './core-state.js';
+import { fmtSecs, fmtDate } from './utils.js';
 
 export let PROG_CHART;
 
 export function renderProgress(){
-  const rows=(window.filterRows?window.filterRows(window.buildModel()):window.buildModel());
+  const rows=filterRows(buildModel());
   const sel=document.querySelector('#progExercise');
-  if(sel) sel.innerHTML=rows.map(r=>`<option value="${(window.exerciseKey?window.exerciseKey(r):r.name)}">${r.name}</option>`).join("");
+  if(sel) sel.innerHTML=rows.map(r=>`<option value="${exerciseKey(r)}">${r.name}</option>`).join("");
   if(!rows.length){ document.querySelector('#calendar').innerHTML="No selected exercises. Open Profile and choose some."; document.querySelector('#progMeters').innerHTML=""; document.querySelector('#progTimeline').innerHTML=""; return; }
   drawCalendar();
   // Build meters for each selected exercise
@@ -13,20 +16,20 @@ export function renderProgress(){
   rows.forEach((row,i)=>{
     const pr=(window.bestFor?window.bestFor(row):null);
     const label=row.name.split(" (")[0];
-    const right=pr? (row.unit==="sec"?(window.fmtSecs?window.fmtSecs(pr.value):pr.value):(row.unit==="xBW"?Number(pr.value).toFixed(2):String(pr.value))) : "-";
+    const right=pr? (row.unit==="sec"?fmtSecs(pr.value):(row.unit==="xBW"?Number(pr.value).toFixed(2):String(pr.value))) : "-";
     const blk=document.createElement("div"); blk.style.margin="10px 0";
     blk.innerHTML = `<div style=\"display:flex;justify-content:space-between;align-items:center\"><div><b>${label}</b></div><div class=\"muted\">${right}</div></div>
     <div class=\"level-meter\" id=\"pmeter-${i}\"><div class=\"fill\" id=\"pfill-${i}\"></div><div class=\"tick\" style=\"left:20%\"></div><div class=\"tick\" style=\"left:40%\"></div><div class=\"tick\" style=\"left:70%\"></div><div class=\"tick\" style=\"left:90%\"></div><div class=\"marker\" id=\"pmark-${i}\" style=\"left:0%\"></div></div>
-    <div class="muted" style="margin-top:4px">Streak: ${(window.weeksStreakFor?window.weeksStreakFor((window.exerciseKey?window.exerciseKey(row):row.name)):0) || 0} week${((window.weeksStreakFor?window.weeksStreakFor((window.exerciseKey?window.exerciseKey(row):row.name)):0)||0)===1?"":"s"}</div>`;
+    <div class="muted" style="margin-top:4px">Streak: ${(window.weeksStreakFor?window.weeksStreakFor(exerciseKey(row)):0) || 0} week${((window.weeksStreakFor?window.weeksStreakFor(exerciseKey(row)):0)||0)===1?"":"s"}</div>`;
     if(wrap) wrap.appendChild(blk);
     const curr = pr?.value;
-    let tier = curr!=null? window.tierAndPoints5(row.dir,curr,row.prospect,row.std,row.strong,row.elite,row.max).tier : "-";
-    const band = window.bandForTier?window.bandForTier(tier):{mid:0,end:0};
+    let tier = curr!=null? tierAndPoints5(row.dir,curr,row.prospect,row.std,row.strong,row.elite,row.max).tier : "-";
+    const band = bandForTier(tier);
     const mark=document.querySelector("#pmark-"+i); if(mark) mark.style.left=Math.round(band.mid*100)+"%";
     const pf=document.querySelector("#pfill-"+i); if(pf){ pf.style.width=Math.round(band.end*100)+"%"; }
   });
   // PR timeline for all exercises
-  const tl=document.querySelector("#progTimeline"); if(tl){ tl.innerHTML=""; (window.extractPRTimeline?window.extractPRTimeline():[]).forEach(l=>{const chip=document.createElement("div"); chip.className="chip-sm"; const row=(window.buildModel?window.buildModel():[]).find(r=>(window.exerciseKey?window.exerciseKey(r):r.name)===l.exercise); const val=row?.unit==="sec"?(window.fmtSecs?window.fmtSecs(l.value):l.value):(row?.unit==="xBW"?Number(l.value).toFixed(2):String(l.value)); chip.textContent = `${l.label.split(' — ')[1]} • ${val} • ${l.date}`; tl.appendChild(chip)}); }
+  const tl=document.querySelector("#progTimeline"); if(tl){ tl.innerHTML=""; (window.extractPRTimeline?window.extractPRTimeline():[]).forEach(l=>{const chip=document.createElement("div"); chip.className="chip-sm"; const row=buildModel().find(r=>exerciseKey(r)===l.exercise); const val=row?.unit==="sec"?fmtSecs(l.value):(row?.unit==="xBW"?Number(l.value).toFixed(2):String(l.value)); chip.textContent = `${l.label.split(' — ')[1]} • ${val} • ${l.date}`; tl.appendChild(chip)}); }
 }
 
 export function drawCalendar(){
@@ -37,7 +40,7 @@ export function drawCalendar(){
   const year = ms.getFullYear(), month = ms.getMonth();
   const firstDow = (ms.getDay()+6)%7; // Monday-start
   const days = me.getDate();
-  const state=window.state||{};
+  const stateRef=state||{};
   const sessions = (state.sessions||[]).filter(s=>{ const d=new Date(s.date); return d.getFullYear()===year && d.getMonth()===month; });
   const FSDAYS = (window.FS_DAYS||[]).filter(x=>{ const d=new Date(x.date?.toDate?x.date.toDate():x.date); return d.getFullYear()===year && d.getMonth()===month; });
   const FSLOGS = (window.FS_RAW_LOGS||[]);
@@ -78,16 +81,16 @@ export function drawCalendar(){
 }
 
 export function drawProgChart(exKey){
-  const rows=(window.buildModel?window.buildModel():[]);
-  const row=rows.find(r=>(window.exerciseKey?window.exerciseKey(r):r.name)===exKey)|| (window.filterRows?window.filterRows(rows)[0]:rows[0]);
-  const logs=(window.state?.logs||[]).filter(l=>l.exercise===exKey).sort((a,b)=>a.date.localeCompare(b.date));
+  const rows2=buildModel();
+  const row=rows2.find(r=>exerciseKey(r)===exKey)|| filterRows(rows2)[0];
+  const logs=(state?.logs||[]).filter(l=>l.exercise===exKey).sort((a,b)=>a.date.localeCompare(b.date));
   const last30=logs.filter(l=>{const d=new Date(l.date), now=new Date(); return (now-d)<=30*86400000});
   const labels=last30.map(l=>l.date), values=last30.map(l=> l.unit==="sec"? l.value/60 : l.value);
   const ms=window.monthStart?window.monthStart():new Date(new Date().getFullYear(),new Date().getMonth(),1);
   const me=window.monthEnd?window.monthEnd():new Date(new Date().getFullYear(),new Date().getMonth()+1,0);
   const mlogs=logs.filter(l=>{const d=new Date(l.date); return d>=ms && d<=me});
   const bestEl=document.querySelector('#bestThisMonth');
-  if(mlogs.length){let best=mlogs[0]; mlogs.forEach(l=>{if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}); if(bestEl) bestEl.textContent=row.unit==="sec"?(window.fmtSecs?window.fmtSecs(best.value):best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value));} else { if(bestEl) bestEl.textContent="-"}
+  if(mlogs.length){let best=mlogs[0]; mlogs.forEach(l=>{if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}); if(bestEl) bestEl.textContent=row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value));} else { if(bestEl) bestEl.textContent="-"}
   const ctx=document.querySelector("#progChart")?.getContext?.("2d"); if(!ctx || !window.Chart) return;
   if(PROG_CHART) PROG_CHART.destroy();
   PROG_CHART=new Chart(ctx,{type:"line",data:{labels,datasets:[{label:"Your Result",data:values,borderWidth:2,tension:.2}]},options:{responsive:true,scales:{y:{title:{display:true,text:row.unit==="sec"?"Minutes":(row.unit==="xBW"?"x Bodyweight":row.unit)}},x:{title:{display:true,text:"Date"}}},plugins:{legend:{display:false}}}});

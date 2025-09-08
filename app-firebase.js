@@ -3,7 +3,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { toTimestamp, parseTime, numOrNull, showToast, showToastAction } from './utils.js';
-import { loadUserData, saveUserData } from './core-state.js';
+import { loadUserData, saveUserData, setState } from './core-state.js';
 import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
 import { renderFireteam } from './fireteam.js';
 import { loadUserData, saveUserData } from './core-state.js';
@@ -126,7 +126,7 @@ onAuthStateChanged(auth, async user => {
     logoutBtn.style.display = "inline-block";
     logBox.style.display = "block";
     const pm = document.getElementById('profileMenu'); if(pm) pm.style.display='';
-    try { window.state = window.loadUserData?.(window.fsUid); window.hydrateProfileUI?.(); } catch {}
+    try { setState(loadUserData(window.fsUid)); window.hydrateProfileUI?.(); } catch {}
     authBox.querySelectorAll("input,button").forEach(el => { if (el.id !== "logout") el.disabled = true; });
     await refreshFs();
     try{ window.navigate && window.navigate("#/home"); }catch{}
