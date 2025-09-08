@@ -42,6 +42,13 @@ export function showToastAction(msg,label,action){
   }catch{}
 }
 
-// Optional global attachment
-try{ window.U = { toTimestamp, parseTime, fmtDT, numOrNull, showToast, showToastAction }; }catch{}
+// Formatting helpers
+export const fmtSecs = (v)=>{ const m=Math.floor(v/60), s=Math.round(v%60); return `${m}:${String(s).padStart(2,'0')}`; };
+export function fmtDate(iso){ try{ const d=new Date(iso); if(!isFinite(d)) return iso; return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch{ return iso } }
 
+// Avatars
+export function hashCode(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return Math.abs(h); }
+export function avatarHTML(name, uid){ const ini=((name||'U').trim()[0]||'U').toUpperCase(); const colors=['#2bd9b8','#6aa9ff','#f3c355','#ff6aa9','#79c389','#6fc2d0']; const idx=hashCode(String(uid||name||'x'))%colors.length; const bg=colors[idx]; return `<span class="avatar" style="background:${bg};color:#0b1311">${ini}</span>`; }
+
+// Optional global attachment
+try{ window.U = { toTimestamp, parseTime, fmtDT, numOrNull, showToast, showToastAction, fmtSecs, fmtDate, avatarHTML, hashCode }; }catch{}

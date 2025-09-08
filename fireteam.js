@@ -15,7 +15,7 @@ export async function renderFireteam(){
   }));
   // Leaderboard by OVERALL score
   const ranks = docs.map(({uid,doc})=>({ uid, name: doc?.name || (uid===me?'You':'Friend'), score: doc?.scores?.OVERALL?.score || 0 })).sort((a,b)=>b.score-a.score);
-  const lb=document.getElementById("ftLeaderboard"); if(lb){ lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.innerHTML=`${(window.avatarHTML||(()=>''))(r.name,r.uid)}<span>${r.name}: ${r.score}</span>`; lb.appendChild(chip)}); }
+  const lb=document.getElementById("ftLeaderboard"); if(lb){ lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.innerHTML=`${(window.avatarHTML?window.avatarHTML(r.name,r.uid):'')}<span>${r.name}: ${r.score}</span>`; lb.appendChild(chip)}); }
   // Friends list with remove buttons
   const fl = document.getElementById('friendsList'); if(fl){
     fl.innerHTML='';
