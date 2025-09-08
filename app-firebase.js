@@ -1,30 +1,87 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { 
+  getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { toTimestamp, parseTime, numOrNull, showToast, showToastAction } from './utils.js';
 import { loadUserData, saveUserData, setState } from './core-state.js';
 import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
 import { renderFireteam } from './fireteam.js';
-import { loadUserData, saveUserData } from './core-state.js';
-import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyAmdJrCbHu8ux5W9vAosUTChSHIiN-16rA",
-  authDomain: "fit-for-fight-b28a1.firebaseapp.com",
-  projectId: "fit-for-fight-b28a1",
-  storageBucket: "fit-for-fight-b28a1.firebasestorage.app",
-  messagingSenderId: "815883203586",
-  appId: "1:815883203586:web:b18cd969ca6346aa5aa31b",
-  measurementId: "G-N6VX9Q7Y8F"
-};
+// Initialize Firebase
+export function initializeFirebase() {
+  const firebaseConfig = {
+    apiKey: "your-api-key",
+    authDomain: "your-auth-domain",
+    projectId: "your-project-id",
+    storageBucket: "your-storage-bucket",
+    messagingSenderId: "your-messaging-sender-id",
+    appId: "your-app-id"
+  };
 
-// Initialize
-const app = initializeApp(firebaseConfig);
-getAnalytics(app);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+// Firebase auth state change handler
+export function onAuthStateChangedHandler() {
+  onAuthStateChanged(auth, async (user) => {
+    window.isFsAuthed = !!user;
+    window.fsUid = user ? user.uid : null;
+
+    if (user) {
+      // Handle user signed in
+      try {
+        await ensureDirectory(user);
+        await refreshFirestoreData();
+      } catch (error) {
+        console.error("Error during auth state change:", error);
+      }
+    } else {
+      // Handle user signed out
+      clearFirestoreState();
+    }
+  });
+}
+
+// Sign out function
+export function fsSignOut() {
+  return signOut(auth);
+}
+
+// Add friend function
+export async function fsAddFriend(uid, friendUid) {
+  if (!uid || !friendUid || uid === friendUid) return false;
+  await addDoc(collection(db, "users", uid, "friends"), {
+    uid: friendUid,
+    addedAt: serverTimestamp()
+  });
+  return true;
+}
+
+// Ensure directory entry exists for user
+async function ensureDirectory(user) {
+  const ref = doc(db, "directory", user.uid);
+  const payload = {
+    uid: user.uid,
+    emailLower: (user.email || "").toLowerCase(),
+    displayName: user.displayName || "User",
+    updatedAt: serverTimestamp()
+  };
+  await updateDoc(ref, payload, { merge: true });
+}
+
+// Refresh Firestore data
+async function refreshFirestoreData() {
+  // Fetch and update Firestore data as needed
+  console.log("Refreshing Firestore data...");
+}
+
+// Clear Firestore state when user signs out
+function clearFirestoreState() {
+  console.log("Clearing Firestore state...");
+}
 
 // Expose auth flags for classic scripts
 window.isFsAuthed = false;
@@ -49,8 +106,8 @@ const friendsCol = (uid) => collection(db, 'users', uid, 'friends');
 
 // Public API for non-module scripts
 window.refreshFs = refreshFs;
-window.fsSignOut = () => signOut(auth);
-window.fsAddFriend = addFriend;
+window.fsSignOut = fsSignOut;
+window.fsAddFriend = fsAddFriend;
 window.fsValidateUid = validateUid;
 window.fsGetPublic = async (uid)=>{ try{ const s=await getDoc(pubDoc(uid)); return s.exists()?s.data():null; }catch{ return null } };
 
