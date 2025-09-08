@@ -1470,213 +1470,11 @@ async function finishTest(){
   $("#testDone").addEventListener("click",()=>{testModal.style.display="none";renderHome();renderProgress();renderBenchmarks()})
 }
 
-/* Progress */
-let PROG_CHART;
-function renderProgress(){
-  const rows=filterRows(buildModel()), sel=$("#progExercise");
-  sel.innerHTML=rows.map(r=>`<option value="${exerciseKey(r)}">${r.name}</option>`).join("");
-  if(!rows.length){$("#calendar").innerHTML="No selected exercises. Open Profile and choose some."; $("#progMeters").innerHTML=""; $("#progTimeline").innerHTML=""; return;}
-  drawCalendar();
-  // Build meters for each selected exercise
-  const wrap=$("#progMeters"); wrap.innerHTML="";
-  rows.forEach((row,i)=>{
-    const pr=bestFor(row);
-    const label=row.name.split(" (")[0];
-    const right=pr? (row.unit==="sec"?fmtSecs(pr.value):(row.unit==="xBW"?Number(pr.value).toFixed(2):String(pr.value))) : "-";
-    const blk=document.createElement("div"); blk.style.margin="10px 0";
-    blk.innerHTML = `<div style=\"display:flex;justify-content:space-between;align-items:center\"><div><b>${label}</b></div><div class=\"muted\">${right}</div></div>
-    <div class=\"level-meter\" id=\"pmeter-${i}\"><div class=\"fill\" id=\"pfill-${i}\"></div><div class=\"tick\" style=\"left:20%\"></div><div class=\"tick\" style=\"left:40%\"></div><div class=\"tick\" style=\"left:70%\"></div><div class=\"tick\" style=\"left:90%\"></div><div class=\"marker\" id=\"pmark-${i}\" style=\"left:0%\"></div></div>
-    <div class="muted" style="margin-top:4px">Streak: ${weeksStreakFor(exerciseKey(row)) || 0} week${(weeksStreakFor(exerciseKey(row))||0)===1?"":"s"}</div>`;
-    wrap.appendChild(blk);
-    const curr = pr?.value;
-    let tier = curr!=null? tierAndPoints5(row.dir,curr,row.prospect,row.std,row.strong,row.elite,row.max).tier : "-";
-    const band = bandForTier(tier);
-    const mark=$("#pmark-"+i); if(mark) mark.style.left=Math.round(band.mid*100)+"%";
-    const pf=$("#pfill-"+i); if(pf){ pf.style.width=Math.round(band.end*100)+"%"; }
-  });
-  // PR timeline for all exercises
-  const tl=$("#progTimeline"); tl.innerHTML=""; extractPRTimeline().forEach(l=>{const chip=document.createElement("div"); chip.className="chip-sm"; const row=buildModel().find(r=>exerciseKey(r)===l.exercise); const val=row?.unit==="sec"?fmtSecs(l.value):(row?.unit==="xBW"?Number(l.value).toFixed(2):String(l.value)); chip.textContent = `${l.label.split(' — ')[1]} • ${val} • ${l.date}`; tl.appendChild(chip)});
-}
+/* Progress extracted to progress.js */
 
 /* Fireteam view */
-async function renderFireteam(){
-  ensureFireteam();
-  $("#inviteCode").textContent = inviteCode();
-  const me=activeUID();
-  const uids=[me,...fireteamFriends()].filter(Boolean);
-  // Prefer realtime cache; fallback to fetch
-  const docs = await Promise.all(uids.map(async (uid)=>{
-    const cached = (window.PUB_CACHE&&window.PUB_CACHE[uid])||null;
-    if(cached) return {uid,doc:cached};
-    try{ const s=await getDoc(pubDoc(uid)); return {uid,doc:s.exists()?s.data():null}; }catch{ return {uid,doc:null}; }
-  }));
-  // Leaderboard by OVERALL score
-  const ranks = docs.map(({uid,doc})=>({ uid, name: doc?.name || (uid===me?'You':'Friend'), score: doc?.scores?.OVERALL?.score || 0 })).sort((a,b)=>b.score-a.score);
-  const lb=$("#ftLeaderboard"); lb.innerHTML=""; ranks.forEach(r=>{const chip=document.createElement('div'); chip.className='chip-sm'; chip.innerHTML=`${avatarHTML(r.name,r.uid)}<span>${r.name}: ${r.score}</span>`; lb.appendChild(chip)});
-  // Friends list with remove buttons
-  const fl = document.getElementById('friendsList'); if(fl){
-    fl.innerHTML='';
-    const friends = uids.filter(u=>u!==me);
-    if(!friends.length){ const li=document.createElement('li'); li.className='muted'; li.textContent='No friends yet.'; fl.appendChild(li); }
-    friends.sort((u1,u2)=>{ const a=(docs.find(x=>x.uid===u1)?.doc?.name||'').toLowerCase(); const b=(docs.find(x=>x.uid===u2)?.doc?.name||'').toLowerCase(); return a.localeCompare(b); });
-    friends.forEach(uid=>{
-      const d=(docs.find(x=>x.uid===uid)?.doc)||{}; const name=d?.name||uid.slice(0,6);
-      const li=document.createElement('li'); li.className='panel'; li.style.padding='8px'; li.style.display='flex'; li.style.justifyContent='space-between'; li.style.alignItems='center';
-      li.innerHTML=`<div style="display:flex;align-items:center;gap:8px">${avatarHTML(name,uid)}<span>${name}</span></div><div><button class='rowbtn' data-remove='${uid}'>Remove</button></div>`;
-      fl.appendChild(li);
-    });
-  }
-
-  // PR Feed from recentPRs
-  const feed=$("#ftFeed"); feed.innerHTML=""; const items=[];
-  docs.forEach(({uid,doc})=>{ if(!doc || doc.sharePRs===false) return; (doc.recentPRs||[]).forEach(x=>items.push({uid,name:doc.name||'Friend',label:x.label,value:x.value,unit:x.unit,date:x.date})) });
-  items.sort((a,b)=>b.date.localeCompare(a.date));
-  items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; const val= it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value)); chip.innerHTML=`${avatarHTML(it.name,it.uid)}<span>${it.name} • PR: ${it.label} • ${val} • ${fmtDate(it.date)}</span>`; feed.appendChild(chip)});
-  // Compare list (names from directory/public)
-  const cmp=$("#compareWith"); cmp.innerHTML = docs.filter(d=>d.uid!==me).sort((a,b)=>{
-    const an=(a.doc?.name||'').toLowerCase(), bn=(b.doc?.name||'').toLowerCase();
-    return an.localeCompare(bn);
-  }).map(({uid,doc})=>`<option value="${uid}">${doc?.name||'Friend'}</option>`).join('');
-  cmp.addEventListener('change',()=>renderCompare(cmp.value),{once:true}); if(cmp.value) renderCompare(cmp.value);
-}
-async function renderCompare(uid){
-  const c=$("#compareTable"); if(!c) return; c.innerHTML='';
-  const me=activeUID();
-  const meDoc = (window.PUB_CACHE&&window.PUB_CACHE[me]) || (await getDoc(pubDoc(me)).then(s=>s.data()).catch(()=>null)) || {};
-  const frDoc = (window.PUB_CACHE&&window.PUB_CACHE[uid]) || (await getDoc(pubDoc(uid)).then(s=>s.data()).catch(()=>null)) || {};
-  const wrap=document.createElement('div');
-  wrap.innerHTML = `
-    <div class="grid grid-2">
-      <div class="panel">
-        <h3 style="margin:0">${meDoc.name||'You'}</h3>
-        <div class="chips" style="margin-top:6px">
-          <div class="chip-sm">Overall: ${meDoc.scores?.OVERALL?.score ?? '-'}</div>
-          <div class="chip-sm">PFT: ${meDoc.scores?.PFT?.score ?? '-'}</div>
-          <div class="chip-sm">CFT: ${meDoc.scores?.CFT?.score ?? '-'}</div>
-        </div>
-        <div class="muted" style="margin-top:6px">Recent PRs</div>
-        <div class="chips" style="margin-top:6px">${(meDoc.recentPRs||[]).slice(-6).map(x=>`<div class='chip-sm'>${x.label} • ${x.unit==='sec'?fmtSecs(x.value):(x.unit==='xBW'?Number(x.value).toFixed(2):String(x.value))}</div>`).join('')}</div>
-      </div>
-      <div class="panel">
-        <h3 style="margin:0">${frDoc.name||'Friend'}</h3>
-        <div class="chips" style="margin-top:6px">
-          <div class="chip-sm">Overall: ${frDoc.scores?.OVERALL?.score ?? '-'}</div>
-          <div class="chip-sm">PFT: ${frDoc.scores?.PFT?.score ?? '-'}</div>
-          <div class="chip-sm">CFT: ${frDoc.scores?.CFT?.score ?? '-'}</div>
-        </div>
-        <div class="muted" style="margin-top:6px">Recent PRs</div>
-        <div class="chips" style="margin-top:6px">${(frDoc.recentPRs||[]).slice(-6).map(x=>`<div class='chip-sm'>${x.label} • ${x.unit==='sec'?fmtSecs(x.value):(x.unit==='xBW'?Number(x.value).toFixed(2):String(x.value))}</div>`).join('')}</div>
-      </div>
-    </div>`;
-  c.appendChild(wrap);
-}
-function drawCalendar(){
-  // compute month with offset
-  const base = new Date(); base.setMonth(base.getMonth()+CAL_OFFSET);
-  const ms = monthStart(base), me = monthEnd(base);
-  const year = ms.getFullYear(), month = ms.getMonth();
-  const firstDow = (ms.getDay()+6)%7; // Monday-start
-  const days = me.getDate();
-
-  const sessions = (state.sessions||[]).filter(s=>{
-    const d=new Date(s.date);
-    return d.getFullYear()===year && d.getMonth()===month;
-  });
-  const FSDAYS = (window.FS_DAYS||[]).filter(x=>{ const d=new Date(x.date?.toDate?x.date.toDate():x.date); return d.getFullYear()===year && d.getMonth()===month; });
-  const FSLOGS = (window.FS_RAW_LOGS||[]);
-
-  const grid=document.createElement("div");
-  grid.style.display="grid";
-  grid.style.gridTemplateColumns="repeat(7,1fr)";
-  grid.style.gap="6px";
-
-  // month header with navigation
-  const header=document.createElement('div');
-  header.style.display='flex'; header.style.alignItems='center'; header.style.justifyContent='space-between'; header.style.margin='0 0 8px 0';
-  const title=document.createElement('div'); title.style.fontWeight='800'; title.style.fontFamily='Inter'; title.textContent=ms.toLocaleString('en-US',{month:'long',year:'numeric'});
-  const nav=document.createElement('div'); nav.style.display='flex'; nav.style.gap='6px';
-  const prevBtn=document.createElement('button'); prevBtn.className='rowbtn'; prevBtn.textContent='‹ Prev'; prevBtn.addEventListener('click',()=>{ CAL_OFFSET--; drawCalendar(); });
-  const todayBtn=document.createElement('button'); todayBtn.className='rowbtn'; todayBtn.textContent='Today'; todayBtn.addEventListener('click',()=>{ CAL_OFFSET=0; drawCalendar(); });
-  const nextBtn=document.createElement('button'); nextBtn.className='rowbtn'; nextBtn.textContent='Next ›'; nextBtn.addEventListener('click',()=>{ CAL_OFFSET++; drawCalendar(); });
-  nav.appendChild(prevBtn); nav.appendChild(todayBtn); nav.appendChild(nextBtn);
-  header.appendChild(title); header.appendChild(nav);
-
-  // headers
-  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(d=>{
-    const c=document.createElement("div");
-    c.className="muted";
-    c.textContent=d;
-    grid.appendChild(c);
-  });
-
-  // leading blanks
-  for(let i=0;i<firstDow;i++){
-    grid.appendChild(document.createElement("div"));
-  }
-
-  for(let d=1; d<=days; d++){
-    const cell=document.createElement("div");
-    cell.className="panel cal-cell";
-    cell.style.padding="8px";
-
-    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const has = sessions.find(s=>s.date===dateStr);
-    const dayMatch = (x)=>{ const dt=new Date(x.date?.toDate?x.date.toDate():x.date); return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; };
-    const fsDay = FSDAYS.find(dayMatch);
-    const logsCountFS = FSLOGS.filter(l=>{ const dt=new Date(l.date?.toDate?l.date.toDate():l.date); if(isNaN(dt)) return false; // normalize to local midnight
-      const Y=dt.getFullYear(), M=dt.getMonth(), D=dt.getDate(); return Y===year && M===month && D===d; }).length;
-    const logsCountLocal = (state.logs||[]).filter(l=>{ const dt=new Date(l.date+'T00:00:00'); if(isNaN(dt)) return false; const Y=dt.getFullYear(), M=dt.getMonth(), D=dt.getDate(); return Y===year && M===month && D===d; }).length;
-    const logsCount = logsCountFS + logsCountLocal;
-
-    const tag = has || fsDay ? '<span class="badge b-strong">Test</span>' : (logsCount?`<span class="badge">${logsCount} logs</span>`:'');
-    if(has || fsDay || logsCount>0) cell.classList.add('has-logs');
-    const sub = has ? `<div class="muted" style="margin-top:6px">Avg: <b>${has.avgPts}</b></div>` : '';
-
-    cell.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div><b>${d}</b></div>
-        ${tag}
-      </div>
-      ${sub}
-    `;
-
-    cell.style.cursor='pointer';
-    cell.addEventListener('click',()=>{
-      // Prefer list view; open modal to add if empty
-      if(window.openFsLogModal && window.isFsAuthed){
-        if(window.setFsDateFilter) window.setFsDateFilter(dateStr);
-        // If there are no logs yet for this date, open the modal prefilled
-        if(logsCount===0){
-          window.openFsLogModal({date:new Date(dateStr), testDayId: fsDay?.id||null});
-        }
-        // Bring cloud logs section into view
-        try{ document.getElementById('logBox')?.scrollIntoView({behavior:'smooth', block:'start'}); }catch{}
-      } else if(has){
-        alert(`Test Day ${fmtDate(dateStr)}\nAverage: ${has.avgPts}\nEntries: ${has.entries.length}`);
-      } else {
-        alert(`${fmtDate(dateStr)}\nSign in (Account box) to add/edit logs for this day.`);
-      }
-    });
-
-    grid.appendChild(cell);
-  }
-
-  const cal = $("#calendar");
-  cal.innerHTML = "";
-  cal.appendChild(header);
-  cal.appendChild(grid);
-}
-
-function drawProgChart(exKey){
-  const row=buildModel().find(r=>exerciseKey(r)===exKey)||filterRows(buildModel())[0]; const logs=(state.logs||[]).filter(l=>l.exercise===exKey).sort((a,b)=>a.date.localeCompare(b.date));
-  const last30=logs.filter(l=>{const d=new Date(l.date), now=new Date(); return (now-d)<=30*86400000});
-  const labels=last30.map(l=>l.date), values=last30.map(l=> l.unit==="sec"? l.value/60 : l.value);
-  const ms=monthStart(), me=monthEnd(), mlogs=logs.filter(l=>{const d=new Date(l.date); return d>=ms && d<=me});
-  if(mlogs.length){let best=mlogs[0]; mlogs.forEach(l=>{if(row.dir==="higher"){if(l.value>best.value) best=l;} else {if(l.value<best.value) best=l;}}); $("#bestThisMonth").textContent=row.unit==="sec"?fmtSecs(best.value):(row.unit==="xBW"?Number(best.value).toFixed(2):String(best.value));} else {$("#bestThisMonth").textContent="-"}
-  const ctx=$("#progChart")?.getContext?.("2d"); if(!ctx || !window.Chart) return;
-  if(PROG_CHART) PROG_CHART.destroy();
-  PROG_CHART=new Chart(ctx,{type:"line",data:{labels,datasets:[{label:"Your Result",data:values,borderWidth:2,tension:.2}]},options:{responsive:true,scales:{y:{title:{display:true,text:row.unit==="sec"?"Minutes":(row.unit==="xBW"?"x Bodyweight":row.unit)}},x:{title:{display:true,text:"Date"}}},plugins:{legend:{display:false}}}});
-}
+/* Fireteam extracted to fireteam.js */
+/* Progress functions moved to progress.js */
 
 /* Levels toast */
 (function(){const KEY="mcfit:levelsSeen"; if(localStorage.getItem(KEY)) return; const toast=$("#levelsToast"),link=$("#levelsOpenLink"),dismiss=$("#levelsDismiss"); toast.style.display="block"; link.addEventListener("click",(e)=>{e.preventDefault(); $("#levelsModal").style.display="flex"; toast.style.display="none"; localStorage.setItem(KEY,"1")}); dismiss.addEventListener("click",()=>{toast.style.display="none"; localStorage.setItem(KEY,"1")});})();
@@ -1705,10 +1503,10 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
       await window.fsAddFriend?.(me, code);
       if(m) m.textContent='Friend added.';
       await refreshFs();
-      renderFireteam();
+    (window.renderFireteam||renderFireteam)();
     }catch{ if(m) m.textContent='Could not add friend.'; }
   });
-  if(location.hash==="#/fireteam") renderFireteam();
+  if(location.hash==="#/fireteam") (window.renderFireteam||renderFireteam)();
   // Ring info modal
   const openInfo=(title,body)=>{const m=$('#infoModal'); $('#infoTitle').textContent=title; $('#infoBody').textContent=body; m.style.display='flex'};
   on('#infoClose','click',()=>$('#infoModal').style.display='none');
@@ -1854,7 +1652,7 @@ document.addEventListener('click',e=>{
 
 <script type="module" src="utils.js"></script>
 <script type="module" src="app-firebase.js"></script>
-<script type="module" src="squad.js"></script>
+<script type="module" src="fireteam.js"></script>
 <script type="module" src="progress.js"></script>
 <!-- Legacy inline module removed; see app-firebase.js -->
 <script type="module">
