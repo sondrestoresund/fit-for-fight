@@ -349,7 +349,7 @@
   <section class="panel">
     <h2>Squad</h2>
     <div class="grid grid-3">
-      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div><div style="display:flex;gap:8px;margin-top:8px"><button class="rowbtn" id="copyInvite">Copy</button><button class="rowbtn" id="shareInvite">Share</button></div><div id="inviteCopyMsg" class="muted" style="margin-top:6px"></div></div>
+      <div class="panel"><h3 style="margin:0">Invite Code</h3><p class="muted" style="margin-top:6px">Share this with friends to connect.</p><div id="inviteCode" class="badge">-</div><div style="display:flex;gap:8px;margin-top:8px"><button class="rowbtn" id="copyInvite">Copy</button><button class="rowbtn" id="copyInviteLink">Copy Link</button><button class="rowbtn" id="shareInvite">Share</button></div><div id="inviteCopyMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Add Friend</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendCode" placeholder="Enter code"><button class="btn" id="addFriend">Connect</button></div><div id="friendMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Invite by Email</h3><div style="display:flex;gap:8px;margin-top:6px"><input id="friendEmail" type="email" placeholder="friend@example.com"><button class="btn" id="inviteByEmail">Invite</button></div><div id="inviteMsg" class="muted" style="margin-top:6px"></div></div>
       <div class="panel"><h3 style="margin:0">Leaderboard</h3><div id="ftLeaderboard" style="margin-top:6px" class="chips"></div></div>
@@ -551,6 +551,9 @@ const on=(sel,ev,fn,opts)=>{const el=$(sel); if(el) el.addEventListener(ev,fn,op
   function avatarHTML(name, uid){ const ini=((name||'U').trim()[0]||'U').toUpperCase(); const colors=['#2bd9b8','#6aa9ff','#f3c355','#ff6aa9','#79c389','#6fc2d0']; const idx=hashCode(String(uid||name||'x'))%colors.length; const bg=colors[idx]; return `<span class="avatar" style="background:${bg};color:#0b1311">${ini}</span>`; }
 // Toasts
 function showToast(msg){ try{ const t=document.createElement('div'); t.className='app-toast'; t.textContent=msg; document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 2200); }catch{} }
+// Deep-link helpers
+function inviteLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}`; }
+function parseInviteFromHash(h){ try{ const q=h.split('?')[1]||''; const p=new URLSearchParams(q); return p.get('code'); }catch{ return null } }
 // Calendar month offset control (0 = current month)
 let CAL_OFFSET = 0;
 const fmtSecs=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return `${m}:${String(s).padStart(2,'0')}`;}
@@ -825,10 +828,19 @@ function navigate(route){
   if(route==="#/home") renderHome();
   if(route==="#/benchmarks") renderBenchmarks();
   if(route==="#/progress") renderProgress();
-  if(route==="#/fireteam") renderFireteam();
+  if(route.startsWith("#/fireteam")){
+    renderFireteam();
+    const code=parseInviteFromHash(route);
+    if(code){ const inp=document.getElementById('friendCode'); if(inp){ inp.value=code; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; } }
+  }
   if(route==="#/about") setupAboutAssets();
 }
-window.addEventListener("hashchange",()=>navigate(location.hash||"#/login"));
+window.addEventListener("hashchange",()=>{
+  const h=location.hash||"#/login";
+  // If invite code present while logged out, store for after sign-in
+  if(!window.isFsAuthed){ const code=parseInviteFromHash(h); if(code){ try{ sessionStorage.setItem('mcfit:pendingInvite', code); }catch{} } }
+  navigate(h);
+});
 
 /* Storage */
 const DATA_PREFIX="mcfit:data:";
@@ -1648,7 +1660,8 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   on('#ctaAddSquad','click',()=>{ location.hash='#/fireteam'; setTimeout(()=>$('#friendCode')?.focus(), 250); });
   // Invite code actions
   on('#copyInvite','click',async ()=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); showToast('Invite code copied'); }catch{ showToast('Copy failed'); } });
-  on('#shareInvite','click',async ()=>{ const code=inviteCode(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: location.origin}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); showToast('Share text copied'); } }catch{} });
+  on('#copyInviteLink','click',async ()=>{ const link=inviteLink(); try{ await navigator.clipboard.writeText(link); showToast('Invite link copied'); }catch{ showToast('Copy failed'); } });
+  on('#shareInvite','click',async ()=>{ const code=inviteCode(); const link=inviteLink(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: link}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); showToast('Share text copied'); } }catch{} });
   // Invite by Email in Squad
   on('#inviteByEmail','click',async ()=>{
     const email=$('#friendEmail')?.value?.trim()?.toLowerCase();
@@ -2154,6 +2167,8 @@ document.addEventListener('click',e=>{
       });
       await refreshFs();
       try{ window.navigate && window.navigate("#/home"); }catch{}
+      // Apply pending invite link after login
+      try{ const pending=sessionStorage.getItem('mcfit:pendingInvite'); if(pending){ sessionStorage.removeItem('mcfit:pendingInvite'); location.hash=`#/fireteam?code=${pending}`; setTimeout(()=>{ const inp=document.getElementById('friendCode'); if(inp){ inp.value=pending; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; } }, 250); } }catch{}
     } else {
       who.textContent = "Not signed in";
       logoutBtn.style.display = "none";
