@@ -1,11 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-import { 
-  getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, setDoc, limit, getDoc, onSnapshot 
-} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  getFirestore, collection, doc, addDoc, getDocs, setDoc, deleteDoc, query,
+  where, orderBy, serverTimestamp, limit, getDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { toTimestamp, parseTime, numOrNull, showToast, showToastAction } from './utils.js';
 import { loadUserData, saveUserData, setState } from './core-state.js';
 import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
@@ -13,12 +14,13 @@ import { renderFireteam } from './fireteam.js';
 
 // Initialize Firebase
 const firebaseConfig = {
-  apiKey: "your-real-api-key",
-  authDomain: "your-real-auth-domain",
-  projectId: "your-real-project-id",
-  storageBucket: "your-real-storage-bucket",
-  messagingSenderId: "your-real-messaging-sender-id",
-  appId: "your-real-app-id"
+  apiKey: "AIzaSyAmdJrCbHu8ux5W9vAosUTChSHIiN-16rA",
+  authDomain: "fit-for-fight-b28a1.firebaseapp.com",
+  projectId: "fit-for-fight-b28a1",
+  storageBucket: "fit-for-fight-b28a1.firebasestorage.app",
+  messagingSenderId: "815883203586",
+  appId: "1:815883203586:web:b18cd969ca6346aa5aa31b",
+  measurementId: "G-N6VX9Q7Y8F"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -60,10 +62,11 @@ export function wireAuthUI() {
     await signOut(auth);
   });
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (status) status.textContent = user ? `Signed in as ${user.email}` : 'Not signed in';
     // Default routing: signed-out -> account, signed-in -> home
     if (user) {
+      try { await ensureDirectory(user); } catch (e) { console.error(e); }
       showView('view-home');
       location.hash = '#/home';
     } else {
@@ -180,7 +183,7 @@ window.fsGetPublic = async (uid)=>{ try{ const s=await getDoc(pubDoc(uid)); retu
 
 // Helpers
 async function createLog(uid,payload){ return addDoc(logsCol(uid),{...payload,date:toTimestamp(payload.date),createdAt:serverTimestamp(),updatedAt:serverTimestamp()}); }
-async function updateLog(uid,logId,updates){ return updateDoc(doc(db,'users',uid,'logs',logId),{...updates,...(updates.date?{date:toTimestamp(updates.date)}:{}),updatedAt:serverTimestamp()}); }
+async function updateLog(uid,logId,updates){ return setDoc(doc(db,'users',uid,'logs',logId),{...updates,...(updates.date?{date:toTimestamp(updates.date)}:{}),updatedAt:serverTimestamp()},{merge:true}); }
 async function deleteLog(uid,logId){ return deleteDoc(doc(db,'users',uid,'logs',logId)); }
 async function listAllLogs(uid){ const qy=query(logsCol(uid),orderBy('date','desc')); const snap=await getDocs(qy); return snap.docs.map(d=>({id:d.id,...d.data()})); }
 async function listTestDays(uid){ const qy=query(daysCol(uid),orderBy('date','desc')); const snap=await getDocs(qy); return snap.docs.map(d=>({id:d.id,...d.data()})); }
@@ -220,3 +223,6 @@ async function refreshFs(){ const user=auth.currentUser; if(!user) return; FS.da
 window.openFsLogModal = function openFsLogModal(log){ const fsLogModal=document.getElementById('fsLogModal'); const fsLogTitle=document.getElementById('fsLogTitle'); const fsDate=document.getElementById('fsDate'); const fsExercise=document.getElementById('fsExercise'); const fsReps=document.getElementById('fsReps'); const fsWeight=document.getElementById('fsWeight'); const fsTime=document.getElementById('fsTime'); const fsNotes=document.getElementById('fsNotes'); const fsTestDay=document.getElementById('fsTestDay'); const fsDelete=document.getElementById('fsDelete'); FS.editingLogId = log?.id || null; if(fsLogTitle) fsLogTitle.textContent = FS.editingLogId ? 'Edit Log' : 'Add Log'; const now=new Date(); const toLocal=(d)=>{ const z=new Date(d); z.setMinutes(z.getMinutes()-z.getTimezoneOffset()); return z.toISOString().slice(0,16); }; if(fsDate) fsDate.value = toLocal(log?.date?.toDate?log.date.toDate(): (log?.date||now)); if(fsExercise) fsExercise.value = log?.exercise || ''; if(fsReps) fsReps.value = log?.reps ?? ''; if(fsWeight) fsWeight.value = log?.weight ?? ''; if(fsTime) fsTime.value = log?.timeSec!=null ? `${Math.floor(log.timeSec/60)}:${String(Math.floor(log.timeSec%60)).padStart(2,'0')}` : ''; if(fsNotes) fsNotes.value = log?.notes || ''; renderFs(); if(fsTestDay) fsTestDay.value = (log?.testDayId || FS.currentDayId || ''); if(fsDelete) fsDelete.style.display = FS.editingLogId ? '' : 'none'; if(fsLogModal) fsLogModal.style.display='flex'; }
 window.setFsCurrentDayId = (id)=>{ FS.currentDayId=id||null; FS.dateFilter=null; renderFs(); };
 window.setFsDateFilter = (dateStr)=>{ FS.dateFilter=dateStr||null; FS.currentDayId=null; renderFs(); };
+
+// Auto-boot so index.html doesn’t need to import anything
+wireAuthUI();

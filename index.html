@@ -562,37 +562,6 @@
 </div></div>
 <div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
 
-<script type="module">
-  // Hard fallback: ensure one view is visible immediately
-  const show = (id) => {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
-    document.getElementById(id)?.classList.add('show');
-  };
-
-  // Initial paint (works even if imports fail)
-  if (!location.hash) location.hash = '#/login';
-  show(location.hash === '#/account' ? 'view-account' : 'view-login');
-
-  // “Go to Account”
-  document.getElementById('goToAccount')?.addEventListener('click', () => {
-    location.hash = '#/account'; show('view-account');
-  });
-
-  // Hash routing
-  window.addEventListener('hashchange', () => {
-    const view = (location.hash || '#/login').replace('#/', 'view-');
-    show(view) || show('view-login');
-  });
-
-  // Load Firebase wiring **without** killing the page if it fails
-  import('./app-firebase.js')
-    .then(({ wireAuthUI }) => typeof wireAuthUI === 'function' && wireAuthUI())
-    .catch((err) => {
-      console.error('Failed to load app-firebase.js (showing login fallback):', err);
-      // We already showed login/account above.
-      const s = document.getElementById('authStatus');
-      if (s) s.textContent = 'Auth temporarily unavailable.';
-    });
-</script>
+<script type="module" src="./app-firebase.js"></script>
 </body>
 </html>
