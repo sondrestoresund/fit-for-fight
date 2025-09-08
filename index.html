@@ -321,7 +321,7 @@
 </header>
 
 <!-- LOGIN + Landing -->
-<main class="container view" id="view-login">
+<main class="container view show" id="view-login">
   <div class="login-wrap">
     <section class="panel">
       <h2>Sign In Required</h2>
@@ -563,44 +563,36 @@
 <div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
 
 <script type="module">
-  import { wireAuthUI } from './app-firebase.js';
+  // Hard fallback: ensure one view is visible immediately
+  const show = (id) => {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
+    document.getElementById(id)?.classList.add('show');
+  };
 
-  // Always shows *some* view even if the hash isn’t set yet
-  window.addEventListener('DOMContentLoaded', () => {
-    wireAuthUI();
+  // Initial paint (works even if imports fail)
+  if (!location.hash) location.hash = '#/login';
+  show(location.hash === '#/account' ? 'view-account' : 'view-login');
 
-    // Ensure only one view is visible
-    const views = document.querySelectorAll('.view');
-    views.forEach(view => view.classList.remove('show'));
-
-    // Show the login view by default if no hash is set
-    const defaultView = document.getElementById('view-login');
-    if (defaultView) {
-      defaultView.classList.add('show');
-    }
-
-    // “Go to Account” button on the landing view
-    document.getElementById('goToAccount')?.addEventListener('click', () => {
-      location.hash = '#/account';
-      // app-firebase onAuthStateChanged will swap to view-account when signed-out
-      const evt = new Event('hashchange');
-      window.dispatchEvent(evt);
-    });
+  // “Go to Account”
+  document.getElementById('goToAccount')?.addEventListener('click', () => {
+    location.hash = '#/account'; show('view-account');
   });
 
-  // Handle hash-based navigation
+  // Hash routing
   window.addEventListener('hashchange', () => {
-    const hash = location.hash || '#/login';
-    const views = document.querySelectorAll('.view');
-    views.forEach(view => view.classList.remove('show'));
-
-    const activeView = document.querySelector(`[id="view-${hash.replace('#/', '')}"]`);
-    if (activeView) {
-      activeView.classList.add('show');
-    } else {
-      document.getElementById('view-login').classList.add('show');
-    }
+    const view = (location.hash || '#/login').replace('#/', 'view-');
+    show(view) || show('view-login');
   });
+
+  // Load Firebase wiring **without** killing the page if it fails
+  import('./app-firebase.js')
+    .then(({ wireAuthUI }) => typeof wireAuthUI === 'function' && wireAuthUI())
+    .catch((err) => {
+      console.error('Failed to load app-firebase.js (showing login fallback):', err);
+      // We already showed login/account above.
+      const s = document.getElementById('authStatus');
+      if (s) s.textContent = 'Auth temporarily unavailable.';
+    });
 </script>
 </body>
 </html>

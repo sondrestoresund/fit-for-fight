@@ -1,28 +1,85 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { 
-  getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  getFirestore, collection, doc, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, setDoc, limit, getDoc, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { toTimestamp, parseTime, numOrNull, showToast, showToastAction } from './utils.js';
 import { loadUserData, saveUserData, setState } from './core-state.js';
 import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
 import { renderFireteam } from './fireteam.js';
 
 // Initialize Firebase
-export function initializeFirebase() {
-  const firebaseConfig = {
-    apiKey: "your-api-key",
-    authDomain: "your-auth-domain",
-    projectId: "your-project-id",
-    storageBucket: "your-storage-bucket",
-    messagingSenderId: "your-messaging-sender-id",
-    appId: "your-app-id"
-  };
+const firebaseConfig = {
+  apiKey: "your-real-api-key",
+  authDomain: "your-real-auth-domain",
+  projectId: "your-real-project-id",
+  storageBucket: "your-real-storage-bucket",
+  messagingSenderId: "your-real-messaging-sender-id",
+  appId: "your-real-app-id"
+};
 
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Small helper to swap views safely
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('show');
+  // header profile menu visibility
+  const prof = document.getElementById('profileMenu');
+  if (prof) prof.style.display = (id === 'view-login' || id === 'view-account') ? 'none' : '';
 }
+
+// Wire up Account form + auth state
+export function wireAuthUI() {
+  console.log('wireAuthUI initialized');
+  const email = document.getElementById('email');
+  const pass = document.getElementById('pass');
+  const signup = document.getElementById('signupBtn');
+  const login = document.getElementById('loginBtn');
+  const logout = document.getElementById('logoutBtn');
+  const status = document.getElementById('authStatus');
+
+  // Buttons may not exist on non-account routes - guard each
+  signup?.addEventListener('click', async () => {
+    try { await createUserWithEmailAndPassword(auth, email.value.trim(), pass.value.trim()); }
+    catch (e) { alert(e.message); }
+  });
+
+  login?.addEventListener('click', async () => {
+    try { await signInWithEmailAndPassword(auth, email.value.trim(), pass.value.trim()); }
+    catch (e) { alert(e.message); }
+  });
+
+  logout?.addEventListener('click', async () => {
+    await signOut(auth);
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (status) status.textContent = user ? `Signed in as ${user.email}` : 'Not signed in';
+    // Default routing: signed-out -> account, signed-in -> home
+    if (user) {
+      showView('view-home');
+      location.hash = '#/home';
+    } else {
+      // Show login/landing first; “Go to Account” jumps to account form
+      showView(location.hash === '#/account' ? 'view-account' : 'view-login');
+    }
+  });
+
+  // Initial paint in case onAuthStateChanged hasn’t fired yet
+  if (!auth.currentUser) {
+    showView(location.hash === '#/account' ? 'view-account' : 'view-login');
+  }
+}
+
+// (optional) export for other modules that need db/auth
+export { auth, db };
 
 // Firebase auth state change handler
 export function onAuthStateChangedHandler() {
@@ -62,14 +119,24 @@ export async function fsAddFriend(uid, friendUid) {
 
 // Ensure directory entry exists for user
 async function ensureDirectory(user) {
-  const ref = doc(db, "directory", user.uid);
-  const payload = {
-    uid: user.uid,
-    emailLower: (user.email || "").toLowerCase(),
-    displayName: user.displayName || "User",
-    updatedAt: serverTimestamp()
+  if (!user) return;
+  const ref = doc(db, 'directory', user.uid);
+  let exists = false; 
+  try { 
+    const s = await getDoc(ref); 
+    exists = s.exists(); 
+  } catch {}
+  const state = loadUserData(user.uid) || {};
+  const displayName = state.profile?.name || (user.email || '').split('@')[0] || 'User';
+  const payload = { 
+    uid: user.uid, 
+    emailLower: (user.email || '').toLowerCase(), 
+    displayName, 
+    name: displayName, 
+    updatedAt: serverTimestamp() 
   };
-  await updateDoc(ref, payload, { merge: true });
+  if (!exists) payload.createdAt = serverTimestamp();
+  await setDoc(ref, payload, { merge: true });
 }
 
 // Refresh Firestore data
@@ -111,30 +178,12 @@ window.fsAddFriend = fsAddFriend;
 window.fsValidateUid = validateUid;
 window.fsGetPublic = async (uid)=>{ try{ const s=await getDoc(pubDoc(uid)); return s.exists()?s.data():null; }catch{ return null } };
 
-// Auth box
-if (signupBtn && loginBtn && logoutBtn) {
-  signupBtn.onclick = async () => { try { await createUserWithEmailAndPassword(auth, (email?.value||"").trim(), pass?.value||""); } catch (e) { alert(e.message); } };
-  loginBtn.onclick  = async () => { try { await signInWithEmailAndPassword(auth, (email?.value||"").trim(), pass?.value||""); } catch (e) { alert(e.message); } };
-  logoutBtn.onclick = async () => { await signOut(auth); };
-}
-
 // Helpers
 async function createLog(uid,payload){ return addDoc(logsCol(uid),{...payload,date:toTimestamp(payload.date),createdAt:serverTimestamp(),updatedAt:serverTimestamp()}); }
 async function updateLog(uid,logId,updates){ return updateDoc(doc(db,'users',uid,'logs',logId),{...updates,...(updates.date?{date:toTimestamp(updates.date)}:{}),updatedAt:serverTimestamp()}); }
 async function deleteLog(uid,logId){ return deleteDoc(doc(db,'users',uid,'logs',logId)); }
 async function listAllLogs(uid){ const qy=query(logsCol(uid),orderBy('date','desc')); const snap=await getDocs(qy); return snap.docs.map(d=>({id:d.id,...d.data()})); }
 async function listTestDays(uid){ const qy=query(daysCol(uid),orderBy('date','desc')); const snap=await getDocs(qy); return snap.docs.map(d=>({id:d.id,...d.data()})); }
-
-async function ensureDirectory(user){
-  if(!user) return;
-  const ref = doc(db,'directory',user.uid);
-  let exists=false; try{ const s=await getDoc(ref); exists=s.exists(); }catch{}
-  const state = loadUserData(user.uid) || {};
-  const displayName = state.profile?.name || (user.email||'').split('@')[0] || 'User';
-  const payload={ uid:user.uid, emailLower:(user.email||'').toLowerCase(), displayName, name:displayName, updatedAt:serverTimestamp() };
-  if(!exists) payload.createdAt=serverTimestamp();
-  await setDoc(ref,payload,{merge:true});
-}
 
 async function findUidByEmail(email){ const emailLower=String(email||'').toLowerCase(); if(!emailLower) return null; const qy=query(dirCol(), where('emailLower','==',emailLower), limit(1)); const snap=await getDocs(qy); if(snap.empty) return null; return snap.docs[0].id; }
 async function validateUid(uid){ try{ const [a,b]=await Promise.all([getDoc(pubDoc(uid)), getDoc(doc(db,'directory',uid))]); return (a.exists()||b.exists()); }catch{ return false; } }
@@ -171,33 +220,3 @@ async function refreshFs(){ const user=auth.currentUser; if(!user) return; FS.da
 window.openFsLogModal = function openFsLogModal(log){ const fsLogModal=document.getElementById('fsLogModal'); const fsLogTitle=document.getElementById('fsLogTitle'); const fsDate=document.getElementById('fsDate'); const fsExercise=document.getElementById('fsExercise'); const fsReps=document.getElementById('fsReps'); const fsWeight=document.getElementById('fsWeight'); const fsTime=document.getElementById('fsTime'); const fsNotes=document.getElementById('fsNotes'); const fsTestDay=document.getElementById('fsTestDay'); const fsDelete=document.getElementById('fsDelete'); FS.editingLogId = log?.id || null; if(fsLogTitle) fsLogTitle.textContent = FS.editingLogId ? 'Edit Log' : 'Add Log'; const now=new Date(); const toLocal=(d)=>{ const z=new Date(d); z.setMinutes(z.getMinutes()-z.getTimezoneOffset()); return z.toISOString().slice(0,16); }; if(fsDate) fsDate.value = toLocal(log?.date?.toDate?log.date.toDate(): (log?.date||now)); if(fsExercise) fsExercise.value = log?.exercise || ''; if(fsReps) fsReps.value = log?.reps ?? ''; if(fsWeight) fsWeight.value = log?.weight ?? ''; if(fsTime) fsTime.value = log?.timeSec!=null ? `${Math.floor(log.timeSec/60)}:${String(Math.floor(log.timeSec%60)).padStart(2,'0')}` : ''; if(fsNotes) fsNotes.value = log?.notes || ''; renderFs(); if(fsTestDay) fsTestDay.value = (log?.testDayId || FS.currentDayId || ''); if(fsDelete) fsDelete.style.display = FS.editingLogId ? '' : 'none'; if(fsLogModal) fsLogModal.style.display='flex'; }
 window.setFsCurrentDayId = (id)=>{ FS.currentDayId=id||null; FS.dateFilter=null; renderFs(); };
 window.setFsDateFilter = (dateStr)=>{ FS.dateFilter=dateStr||null; FS.currentDayId=null; renderFs(); };
-
-// Auth state
-onAuthStateChanged(auth, async user => {
-  window.isFsAuthed = !!user;
-  window.fsUid = user ? user.uid : null;
-  if (!who || !logoutBtn || !logBox || !authBox) return;
-  if (user) {
-    try{ await ensureDirectory(user); }catch{}
-    who.textContent = `Signed in as ${user.email}`;
-    logoutBtn.style.display = "inline-block";
-    logBox.style.display = "block";
-    const pm = document.getElementById('profileMenu'); if(pm) pm.style.display='';
-    try { setState(loadUserData(window.fsUid)); window.hydrateProfileUI?.(); } catch {}
-    authBox.querySelectorAll("input,button").forEach(el => { if (el.id !== "logout") el.disabled = true; });
-    await refreshFs();
-    try{ window.navigate && window.navigate("#/home"); }catch{}
-    try{ const pending=sessionStorage.getItem('mcfit:pendingInvite'); const auto=sessionStorage.getItem('mcfit:pendingInviteAuto')==='1'; if(pending){ sessionStorage.removeItem('mcfit:pendingInvite'); sessionStorage.removeItem('mcfit:pendingInviteAuto'); location.hash=`#/fireteam?code=${pending}${auto?'&auto=1':''}`; setTimeout(()=>{ const inp=document.getElementById('friendCode'); if(inp){ inp.value=pending; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; } }, 250); } }catch{}
-  } else {
-    who.textContent = "Not signed in";
-    logoutBtn.style.display = "none";
-    logBox.style.display = "none";
-    const pm = document.getElementById('profileMenu'); if(pm) pm.style.display='none';
-    authBox.querySelectorAll("input,button").forEach(el => { el.disabled = false; });
-    const fsLogList=document.getElementById('fsLogList'); if (fsLogList) fsLogList.innerHTML = "";
-    window.FS_LOGS=[];
-    try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{} FRIENDS_UNSUB=null; try{ Object.values(PUB_UNSUBS||{}).forEach(u=>u&&u()); }catch{} for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k]; for(const k in PUB_CACHE) delete PUB_CACHE[k];
-    try{ window.renderBenchmarks?.(); window.renderHome?.(); window.renderProgress?.(); }catch{}
-    try{ window.navigate && window.navigate("#/login"); }catch{}
-  }
-});
