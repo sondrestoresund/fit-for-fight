@@ -555,7 +555,8 @@ function showToast(msg){ try{ const t=document.createElement('div'); t.className
 function showToastAction(msg,label,action){ try{ const t=document.createElement('div'); t.className='app-toast'; const span=document.createElement('span'); span.textContent=msg; const a=document.createElement('span'); a.className='toast-act'; a.textContent=label; a.onclick=()=>{ try{ action?.(); }finally{ t.classList.remove('show'); setTimeout(()=>t.remove(),200);} }; t.appendChild(span); t.appendChild(a); document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 4000); }catch{} }
 // Deep-link helpers
 function inviteLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}`; }
-function parseInviteFromHash(h){ try{ const q=h.split('?')[1]||''; const p=new URLSearchParams(q); return p.get('code'); }catch{ return null } }
+function parseInviteParams(h){ try{ const q=h.split('?')[1]||''; const p=new URLSearchParams(q); return { code: p.get('code'), auto: p.get('auto')==='1' }; }catch{ return {code:null,auto:false} } }
+function parseInviteFromHash(h){ return parseInviteParams(h).code }
 // Calendar month offset control (0 = current month)
 let CAL_OFFSET = 0;
 const fmtSecs=v=>{const m=Math.floor(v/60),s=Math.round(v%60);return `${m}:${String(s).padStart(2,'0')}`;}
@@ -832,17 +833,15 @@ function navigate(route){
   if(route==="#/progress") renderProgress();
   if(route.startsWith("#/fireteam")){
     renderFireteam();
-    const code=parseInviteFromHash(route);
+    const {code,auto}=parseInviteParams(route);
     if(code){
       const inp=document.getElementById('friendCode'); if(inp){ inp.value=code; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; }
       // Auto-connect with confirmation if signed in and helpers available
       const me=window.fsUid; const friends=(state.fireteam?.friends)||[];
       if(me && code!==me && window.fsAddFriend){
         if(!friends.includes(code)){
-          const ok=confirm('Add this friend now?');
-          if(ok){
-            (async()=>{ try{ await window.fsAddFriend(me,code); await window.refreshFs?.(); showToast('Friend added'); }catch{ showToast('Could not add friend'); } })();
-          }
+          const proceed = auto ? true : confirm('Add this friend now?');
+          if(proceed){ (async()=>{ try{ await window.fsAddFriend(me,code); await window.refreshFs?.(); showToast('Friend added'); }catch{ showToast('Could not add friend'); } })(); }
         } else { showToast('Already connected'); }
       }
     }
@@ -852,7 +851,7 @@ function navigate(route){
 window.addEventListener("hashchange",()=>{
   const h=location.hash||"#/login";
   // If invite code present while logged out, store for after sign-in
-  if(!window.isFsAuthed){ const code=parseInviteFromHash(h); if(code){ try{ sessionStorage.setItem('mcfit:pendingInvite', code); showToastAction('Invite detected. Sign in to add.', 'Open Squad', ()=>{ location.hash=`#/fireteam?code=${code}`; }); }catch{} } }
+  if(!window.isFsAuthed){ const {code,auto}=parseInviteParams(h); if(code){ try{ sessionStorage.setItem('mcfit:pendingInvite', code); sessionStorage.setItem('mcfit:pendingInviteAuto', auto?'1':'0'); showToastAction('Invite detected. Sign in to add.', 'Open Squad', ()=>{ location.hash=`#/fireteam?code=${code}${auto?'&auto=1':''}`; }); }catch{} } }
   navigate(h);
 });
 
@@ -2181,8 +2180,8 @@ document.addEventListener('click',e=>{
       });
       await refreshFs();
       try{ window.navigate && window.navigate("#/home"); }catch{}
-      // Apply pending invite link after login
-      try{ const pending=sessionStorage.getItem('mcfit:pendingInvite'); if(pending){ sessionStorage.removeItem('mcfit:pendingInvite'); location.hash=`#/fireteam?code=${pending}`; setTimeout(()=>{ const inp=document.getElementById('friendCode'); if(inp){ inp.value=pending; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; } }, 250); } }catch{}
+      // Apply pending invite link after login (auto-connect honored)
+      try{ const pending=sessionStorage.getItem('mcfit:pendingInvite'); const auto=sessionStorage.getItem('mcfit:pendingInviteAuto')==='1'; if(pending){ sessionStorage.removeItem('mcfit:pendingInvite'); sessionStorage.removeItem('mcfit:pendingInviteAuto'); location.hash=`#/fireteam?code=${pending}${auto?'&auto=1':''}`; setTimeout(()=>{ const inp=document.getElementById('friendCode'); if(inp){ inp.value=pending; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; } }, 250); } }catch{}
     } else {
       who.textContent = "Not signed in";
       logoutBtn.style.display = "none";
