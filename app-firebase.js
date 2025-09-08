@@ -47,6 +47,7 @@ window.refreshFs = refreshFs;
 window.fsSignOut = () => signOut(auth);
 window.fsAddFriend = addFriend;
 window.fsValidateUid = validateUid;
+window.fsGetPublic = async (uid)=>{ try{ const s=await getDoc(pubDoc(uid)); return s.exists()?s.data():null; }catch{ return null } };
 
 // Auth box
 if (signupBtn && loginBtn && logoutBtn) {
@@ -138,4 +139,3 @@ onAuthStateChanged(auth, async user => {
     try{ window.navigate && window.navigate("#/login"); }catch{}
   }
 });
-

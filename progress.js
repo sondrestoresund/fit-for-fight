@@ -93,8 +93,4 @@ export function drawProgChart(exKey){
   PROG_CHART=new Chart(ctx,{type:"line",data:{labels,datasets:[{label:"Your Result",data:values,borderWidth:2,tension:.2}]},options:{responsive:true,scales:{y:{title:{display:true,text:row.unit==="sec"?"Minutes":(row.unit==="xBW"?"x Bodyweight":row.unit)}},x:{title:{display:true,text:"Date"}}},plugins:{legend:{display:false}}}});
 }
 
-// Temporary bridges
-window.renderProgress = renderProgress;
-window.drawCalendar   = drawCalendar;
-window.drawProgChart  = drawProgChart;
-
+// No global bridges here; temporary assignment happens in bootstrap.js

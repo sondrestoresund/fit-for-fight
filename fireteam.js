@@ -68,7 +68,4 @@ export async function renderCompare(uid){
   c.appendChild(wrap);
 }
 
-// Temporary bridges for existing event wiring
-window.renderFireteam = renderFireteam;
-window.renderCompare  = renderCompare;
-
+// No global bridges here; temporary assignment happens in bootstrap.js
