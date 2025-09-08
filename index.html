@@ -831,9 +831,9 @@ function navigate(route){
   setActiveTab(route);
   if(route==="#/home") renderHome();
   if(route==="#/benchmarks") renderBenchmarks();
-  if(route==="#/progress") renderProgress();
+  if(route==="#/progress") (window.renderProgress||renderProgress)();
   if(route.startsWith("#/fireteam")){
-    renderFireteam();
+    (window.renderFireteam||renderFireteam)();
     const {code,auto}=parseInviteParams(route);
     if(code){
       const inp=document.getElementById('friendCode'); if(inp){ inp.value=code; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; }
@@ -1854,6 +1854,8 @@ document.addEventListener('click',e=>{
 
 <script type="module" src="utils.js"></script>
 <script type="module" src="app-firebase.js"></script>
+<script type="module" src="squad.js"></script>
+<script type="module" src="progress.js"></script>
 <!-- Legacy inline module removed; see app-firebase.js -->
 <script type="module">
 // This script tag remains for backward compatibility if needed.
