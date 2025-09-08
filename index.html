@@ -562,20 +562,21 @@
 </div></div>
 <div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
 
-<script type="module" src="utils.js"></script>
-<script type="module" src="core-state.js"></script>
-<script type="module" src="model.js"></script>
-<script type="module" src="app-firebase.js"></script>
-<script type="module" src="fireteam.js"></script>
-<script type="module" src="progress.js"></script>
-
 <script type="module">
-  document.getElementById('goToAccount')?.addEventListener('click', () => {
-    location.hash = '#/account';
-  });
-
   import { wireAuthUI } from './app-firebase.js';
-  wireAuthUI();
+
+  // Always shows *some* view even if the hash isn’t set yet
+  window.addEventListener('DOMContentLoaded', () => {
+    wireAuthUI();
+
+    // “Go to Account” button on the landing view
+    document.getElementById('goToAccount')?.addEventListener('click', () => {
+      location.hash = '#/account';
+      // app-firebase onAuthStateChanged will swap to view-account when signed-out
+      const evt = new Event('hashchange');
+      window.dispatchEvent(evt);
+    });
+  });
 </script>
 </body>
 </html>
