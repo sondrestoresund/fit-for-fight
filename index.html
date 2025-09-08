@@ -256,6 +256,7 @@
   /* App toast */
   .app-toast{position:fixed;left:16px;bottom:16px;background:#161b23;border:1px solid rgba(231,236,244,.12);border-radius:10px;padding:10px 12px;z-index:99999;opacity:0;transform:translateY(8px);transition:opacity .18s ease, transform .18s ease}
   .app-toast.show{opacity:1;transform:translateY(0)}
+  .app-toast .toast-act{margin-left:10px;color:#2bd9b8;cursor:pointer;font-weight:800}
 
   /* Calendar cells */
   .cal-cell{transition:border-color .15s ease, box-shadow .15s ease}
@@ -551,6 +552,7 @@ const on=(sel,ev,fn,opts)=>{const el=$(sel); if(el) el.addEventListener(ev,fn,op
   function avatarHTML(name, uid){ const ini=((name||'U').trim()[0]||'U').toUpperCase(); const colors=['#2bd9b8','#6aa9ff','#f3c355','#ff6aa9','#79c389','#6fc2d0']; const idx=hashCode(String(uid||name||'x'))%colors.length; const bg=colors[idx]; return `<span class="avatar" style="background:${bg};color:#0b1311">${ini}</span>`; }
 // Toasts
 function showToast(msg){ try{ const t=document.createElement('div'); t.className='app-toast'; t.textContent=msg; document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 2200); }catch{} }
+function showToastAction(msg,label,action){ try{ const t=document.createElement('div'); t.className='app-toast'; const span=document.createElement('span'); span.textContent=msg; const a=document.createElement('span'); a.className='toast-act'; a.textContent=label; a.onclick=()=>{ try{ action?.(); }finally{ t.classList.remove('show'); setTimeout(()=>t.remove(),200);} }; t.appendChild(span); t.appendChild(a); document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 4000); }catch{} }
 // Deep-link helpers
 function inviteLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}`; }
 function parseInviteFromHash(h){ try{ const q=h.split('?')[1]||''; const p=new URLSearchParams(q); return p.get('code'); }catch{ return null } }
@@ -831,14 +833,26 @@ function navigate(route){
   if(route.startsWith("#/fireteam")){
     renderFireteam();
     const code=parseInviteFromHash(route);
-    if(code){ const inp=document.getElementById('friendCode'); if(inp){ inp.value=code; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; } }
+    if(code){
+      const inp=document.getElementById('friendCode'); if(inp){ inp.value=code; const m=document.getElementById('friendMsg'); if(m) m.textContent='Invite prefilled. Click Connect to add.'; }
+      // Auto-connect with confirmation if signed in and helpers available
+      const me=window.fsUid; const friends=(state.fireteam?.friends)||[];
+      if(me && code!==me && window.fsAddFriend){
+        if(!friends.includes(code)){
+          const ok=confirm('Add this friend now?');
+          if(ok){
+            (async()=>{ try{ await window.fsAddFriend(me,code); await window.refreshFs?.(); showToast('Friend added'); }catch{ showToast('Could not add friend'); } })();
+          }
+        } else { showToast('Already connected'); }
+      }
+    }
   }
   if(route==="#/about") setupAboutAssets();
 }
 window.addEventListener("hashchange",()=>{
   const h=location.hash||"#/login";
   // If invite code present while logged out, store for after sign-in
-  if(!window.isFsAuthed){ const code=parseInviteFromHash(h); if(code){ try{ sessionStorage.setItem('mcfit:pendingInvite', code); }catch{} } }
+  if(!window.isFsAuthed){ const code=parseInviteFromHash(h); if(code){ try{ sessionStorage.setItem('mcfit:pendingInvite', code); showToastAction('Invite detected. Sign in to add.', 'Open Squad', ()=>{ location.hash=`#/fireteam?code=${code}`; }); }catch{} } }
   navigate(h);
 });
 
@@ -1630,14 +1644,14 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   on('#addFriend','click',async ()=>{
     const code=$('#friendCode')?.value?.trim();
     const m=$('#friendMsg');
-    const user = typeof auth!=='undefined' ? (auth.currentUser||null) : null;
+    const me = window.fsUid;
     if(!code){ if(m) m.textContent='Enter a code'; return; }
-    if(!user){ if(m) m.textContent='Sign in first.'; return; }
-    if(code===user.uid){ if(m) m.textContent='That’s you!'; return; }
+    if(!me){ if(m) m.textContent='Sign in first.'; return; }
+    if(code===me){ if(m) m.textContent='That’s you!'; return; }
     try{
-      const fr = await listFriends(user.uid);
+      const fr = state.fireteam?.friends||[];
       if(fr.includes(code)){ if(m) m.textContent='Already added.'; return; }
-      await addFriend(user.uid, code);
+      await window.fsAddFriend?.(me, code);
       if(m) m.textContent='Friend added.';
       await refreshFs();
       renderFireteam();
@@ -1659,9 +1673,9 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   // Add Squad CTA on Home
   on('#ctaAddSquad','click',()=>{ location.hash='#/fireteam'; setTimeout(()=>$('#friendCode')?.focus(), 250); });
   // Invite code actions
-  on('#copyInvite','click',async ()=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); showToast('Invite code copied'); }catch{ showToast('Copy failed'); } });
-  on('#copyInviteLink','click',async ()=>{ const link=inviteLink(); try{ await navigator.clipboard.writeText(link); showToast('Invite link copied'); }catch{ showToast('Copy failed'); } });
-  on('#shareInvite','click',async ()=>{ const code=inviteCode(); const link=inviteLink(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: link}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); showToast('Share text copied'); } }catch{} });
+  on('#copyInvite','click',async ()=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); showToastAction('Invite code copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
+  on('#copyInviteLink','click',async ()=>{ const link=inviteLink(); try{ await navigator.clipboard.writeText(link); showToastAction('Invite link copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
+  on('#shareInvite','click',async ()=>{ const code=inviteCode(); const link=inviteLink(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: link}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); showToastAction('Share text copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); } }catch{} });
   // Invite by Email in Squad
   on('#inviteByEmail','click',async ()=>{
     const email=$('#friendEmail')?.value?.trim()?.toLowerCase();
@@ -2100,7 +2114,7 @@ document.addEventListener('click',e=>{
   if(fsCreateDay){ fsCreateDay.onclick=async()=>{ const user=auth.currentUser; if(!user) return alert('Log in first'); const date=fsDayDate?.value||new Date().toISOString().slice(0,10); const title=fsDayTitle?.value||'Test Day'; await createTestDay(user.uid,{date,title}); fsDayTitle.value=''; await refreshFs(); } }
   const fsClearFilterBtn = document.getElementById('fsClearFilter');
   if(fsClearFilterBtn){ fsClearFilterBtn.onclick=()=>{ FS.currentDayId=null; FS.dateFilter=null; renderFs(); } }
-  if(fsDayList){ fsDayList.addEventListener('click',async e=>{ const btn=e.target.closest('button'); if(!btn) return; const id=btn.dataset.id; const user=auth.currentUser; if(!user) return; const act=btn.dataset.act; if(act==='open'){ FS.currentDayId = id; renderFs(); } else if(act==='rename'){ const cur=FS.days.find(d=>d.id===id); const title=prompt('New title', cur?.title||'Test Day'); if(title!=null){ await updateTestDay(user.uid,id,{title}); await refreshFs(); } } else if(act==='delete'){ if(confirm('Delete this Test Day? Logs will remain (unlinked).')){ await deleteTestDay(user.uid,id); if(FS.currentDayId===id) FS.currentDayId=null; await refreshFs(); } } }); }
+  if(fsDayList){ fsDayList.addEventListener('click',async e=>{ const btn=e.target.closest('button'); if(!btn) return; const id=btn.dataset.id; const user=auth.currentUser; if(!user) return; const act=btn.dataset.act; if(act==='open'){ FS.currentDayId = id; renderFs(); } else if(act==='rename'){ const cur=FS.days.find(d=>d.id===id); const title=prompt('New title', cur?.title||'Test Day'); if(title!=null){ await updateTestDay(user.uid,id,{title}); await refreshFs(); } } else if(act==='delete'){ if(confirm('Delete this Test Day? Logs will remain (unlinked).')){ await deleteTestDay(user.uid,id); if(FS.currentDayId===id) FS.currentDayId=null; await refreshFs(); showToast('Test Day deleted'); } } }); }
   if(fsAddLog){ fsAddLog.onclick=()=>{ openFsLogModal(); } }
   // Remove friend from list
   const fl = document.getElementById('friendsList');
@@ -2184,6 +2198,8 @@ document.addEventListener('click',e=>{
 
   // expose sign-out for profile dropdown
   window.fsSignOut = () => signOut(auth);
+  // expose helper for non-module handlers
+  window.fsAddFriend = addFriend;
 </script>
 </body>
 </html>
