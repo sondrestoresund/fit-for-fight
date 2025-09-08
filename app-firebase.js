@@ -3,6 +3,8 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { toTimestamp, parseTime, numOrNull, showToast, showToastAction } from './utils.js';
+import { loadUserData, saveUserData } from './core-state.js';
+import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
 
 // Firebase config
 const firebaseConfig = {
@@ -67,7 +69,7 @@ async function ensureDirectory(user){
   if(!user) return;
   const ref = doc(db,'directory',user.uid);
   let exists=false; try{ const s=await getDoc(ref); exists=s.exists(); }catch{}
-  const state = window.loadUserData?.(user.uid) || {};
+  const state = loadUserData(user.uid) || {};
   const displayName = state.profile?.name || (user.email||'').split('@')[0] || 'User';
   const payload={ uid:user.uid, emailLower:(user.email||'').toLowerCase(), displayName, name:displayName, updatedAt:serverTimestamp() };
   if(!exists) payload.createdAt=serverTimestamp();
@@ -84,12 +86,12 @@ function recognizedRowForName(name){ try{ return window.buildModel?.().find(r=>r
 function valueFromLogForRow(log,row){ if(!row) return null; if(row.unit==='reps') return (typeof log.reps==='number')?log.reps:null; if(row.unit==='sec') return (typeof log.timeSec==='number')?log.timeSec:null; return null; }
 function prsMapFromFSLogs(logs){ const map={}; const rows=window.buildModel?.()||[]; logs.forEach(l=>{ const row=recognizedRowForName(l.exercise); if(!row) return; const key=window.nameToKey?window.nameToKey(row.name):row.name; const v=valueFromLogForRow(l,row); if(v==null) return; if(map[key]==null){ map[key]=v; } else { map[key] = row.dir==='higher' ? Math.max(map[key],v) : Math.min(map[key],v); } }); return map; }
 function recentPRsFromFSLogs(logs){ const rows=window.buildModel?.()||[]; const best={}; const out=[]; const sorted=logs.slice().sort((a,b)=>{ const da=a.date?.toDate? a.date.toDate():new Date(a.date); const db=b.date?.toDate? b.date.toDate():new Date(b.date); return da-db; }); sorted.forEach(l=>{ const row=recognizedRowForName(l.exercise); if(!row) return; const key=window.nameToKey?window.nameToKey(row.name):row.name; const v=valueFromLogForRow(l,row); if(v==null) return; const prev=best[key]; const better = prev==null ? true : (row.dir==='higher'? v>prev : v<prev); if(better){ best[key]=v; out.push({ label: row.name, value: v, unit: row.unit, date: (l.date?.toDate? l.date.toDate() : new Date(l.date)).toISOString().slice(0,10) }); } }); return out.slice(-12); }
-async function publishPublicSummary(){ const user=auth.currentUser; if(!user) return; const state=window.loadUserData?.(user.uid)||{}; const share=!!(state.profile?.sharePRs); const base={ uid:user.uid, name:state.profile?.name || (user.email||'').split('@')[0] || 'User', sharePRs:share, updatedAt:serverTimestamp(), emailLower:(user.email||'').toLowerCase() }; if(!share){ await setDoc(pubDoc(user.uid), base, {merge:true}); return; } const prs=prsMapFromFSLogs(FS.logs||[]); const std = window.standardsFromModel?window.standardsFromModel(window.buildModel?.()||[]):{}; const scores = window.computeHeadlineScores?window.computeHeadlineScores(prs,std,window.SCORE_SETS):{}; const recentPRs = recentPRsFromFSLogs(FS.logs||[]); await setDoc(pubDoc(user.uid), { ...base, scores, recentPRs }, {merge:true}); }
+async function publishPublicSummary(){ const user=auth.currentUser; if(!user) return; const st=loadUserData(user.uid)||{}; const share=!!(st.profile?.sharePRs); const base={ uid:user.uid, name:st.profile?.name || (user.email||'').split('@')[0] || 'User', sharePRs:share, updatedAt:serverTimestamp(), emailLower:(user.email||'').toLowerCase() }; if(!share){ await setDoc(pubDoc(user.uid), base, {merge:true}); return; } const prs=prsMapFromFSLogs(FS.logs||[]); const std = standardsFromModel(buildModel()); const scores = computeHeadlineScores(prs,std,{pft:['pullups','pushups','mile_3'], cft:['ammo_2min','run_800m','farmers_carry']}); const recentPRs = recentPRsFromFSLogs(FS.logs||[]); await setDoc(pubDoc(user.uid), { ...base, scores, recentPRs }, {merge:true}); }
 
 // Realtime squad subscriptions
 const PUB_CACHE = {}; const PUB_UNSUBS = {}; let FRIENDS_UNSUB=null; window.PUB_CACHE = PUB_CACHE; // reuse in classic code
 function resubscribePublic(ids){ const set=new Set(ids); Object.keys(PUB_UNSUBS).forEach(uid=>{ if(!set.has(uid)){ try{ PUB_UNSUBS[uid](); }catch{} delete PUB_UNSUBS[uid]; delete PUB_CACHE[uid]; } }); ids.forEach(uid=>{ if(PUB_UNSUBS[uid]) return; PUB_UNSUBS[uid] = onSnapshot(pubDoc(uid),(snap)=>{ PUB_CACHE[uid]=snap.exists()?snap.data():null; try{ window.renderFireteam?.(); }catch{} }); }); }
-function setupSquadRealtime(){ try{ Object.values(PUB_UNSUBS).forEach(u=>u()); }catch{} for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k]; try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{} FRIENDS_UNSUB=null; const user=auth.currentUser; if(!user) return; FRIENDS_UNSUB = onSnapshot(friendsCol(user.uid),(snap)=>{ const ids=snap.docs.map(d=>d.id); let state=window.loadUserData?.(user.uid)||{}; state.fireteam=state.fireteam||{}; state.fireteam.friends=ids; window.saveUserData?.(user.uid,state); resubscribePublic([user.uid,...ids]); try{ window.renderFireteam?.(); }catch{} }); resubscribePublic([user.uid,...((window.loadUserData?.(user.uid)||{}).fireteam?.friends||[])]); }
+function setupSquadRealtime(){ try{ Object.values(PUB_UNSUBS).forEach(u=>u()); }catch{} for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k]; try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{} FRIENDS_UNSUB=null; const user=auth.currentUser; if(!user) return; FRIENDS_UNSUB = onSnapshot(friendsCol(user.uid),(snap)=>{ const ids=snap.docs.map(d=>d.id); let s=loadUserData(user.uid)||{}; s.fireteam=s.fireteam||{}; s.fireteam.friends=ids; saveUserData(user.uid,s); resubscribePublic([user.uid,...ids]); try{ window.renderFireteam?.(); }catch{} }); resubscribePublic([user.uid,...((loadUserData(user.uid)||{}).fireteam?.friends||[])]); }
 
 // Local FS state
 const FS={ user:null, days:[], logs:[], currentDayId:null, dateFilter:null, editingLogId:null };
