@@ -325,8 +325,14 @@
   <div class="login-wrap">
     <section class="panel">
       <h2>Sign In Required</h2>
-      <p class="muted">Please sign in using the Account box below to access the app.</p>
-      <button class="btn" id="goToAccount" style="margin-top:8px">Go to Account</button>
+      <p class="muted">Please sign in using the form below to access the app.</p>
+      <form id="signInForm" style="margin-top:8px">
+        <label for="signInEmail">Email</label>
+        <input id="signInEmail" type="email" placeholder="Enter your email" required>
+        <label for="signInPassword" style="margin-top:8px">Password</label>
+        <input id="signInPassword" type="password" placeholder="Enter your password" required>
+        <button class="btn" type="submit" style="margin-top:8px">Sign In</button>
+      </form>
     </section>
     <section class="panel">
       <div class="hero" style="background-image:url('https://images.unsplash.com/photo-1521804906057-1df8fdb718b2?q=80&w=1600&auto=format&fit=crop');">
@@ -563,5 +569,48 @@
 <div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
 
 <script type="module" src="./app-firebase.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Handle navigation between views
+    const tabs = document.querySelectorAll(".tabs .chip");
+    const views = document.querySelectorAll(".view");
+
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        const route = tab.getAttribute("data-route");
+        views.forEach(view => view.classList.remove("show"));
+        document.querySelector(route).classList.add("show");
+
+        tabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+      });
+    });
+
+    // Example button actions
+    document.getElementById("profileBtn")?.addEventListener("click", () => {
+      const dropdown = document.getElementById("profileDropdown");
+      dropdown.classList.toggle("show");
+    });
+
+    document.getElementById("signInForm")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      alert("Sign-in form submitted!");
+    });
+
+    document.getElementById("startTestDay")?.addEventListener("click", () => {
+      alert("Starting Test Day...");
+    });
+
+    document.getElementById("aboutStartTest")?.addEventListener("click", () => {
+      alert("Navigating to Test...");
+    });
+
+    document.getElementById("aboutStartTest2")?.addEventListener("click", () => {
+      alert("Navigating to Test...");
+    });
+
+    // Add more event listeners for other buttons as needed
+  });
+</script>
 </body>
 </html>
