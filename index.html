@@ -842,7 +842,7 @@ function navigate(route){
       if(me && code!==me && window.fsAddFriend){
         if(!friends.includes(code)){
           const proceed = auto ? true : confirm('Add this friend now?');
-          if(proceed){ (async()=>{ try{ await window.fsAddFriend(me,code); await window.refreshFs?.(); showToast('Friend added'); }catch{ showToast('Could not add friend'); } })(); }
+          if(proceed){ (async()=>{ try{ const valid=await window.fsValidateUid?.(code); if(!valid){ showToast('Invalid invite code'); return; } await window.fsAddFriend(me,code); await window.refreshFs?.(); showToast('Friend added'); }catch{ showToast('Could not add friend'); } })(); }
         } else { showToast('Already connected'); }
       }
     }
@@ -1700,6 +1700,8 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
     try{
       const fr = state.fireteam?.friends||[];
       if(fr.includes(code)){ if(m) m.textContent='Already added.'; return; }
+      const valid = await window.fsValidateUid?.(code);
+      if(!valid){ if(m) m.textContent='Invalid invite code.'; return; }
       await window.fsAddFriend?.(me, code);
       if(m) m.textContent='Friend added.';
       await refreshFs();
@@ -1850,77 +1852,13 @@ document.addEventListener('click',e=>{
   <div class="modal-actions"><button class="btn secondary" id="fsCancel">Cancel</button><button class="btn secondary" id="fsDelete" style="display:none">Delete</button><button class="btn" id="fsSave">Save</button></div>
 </div></div>
 
+<script type="module" src="utils.js"></script>
+<script type="module" src="app-firebase.js"></script>
+<!-- Legacy inline module removed; see app-firebase.js -->
 <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-  import { 
-    getAuth, onAuthStateChanged,
-    createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
-  import {
-    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
-    getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot, writeBatch
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyAmdJrCbHu8ux5W9vAosUTChSHIiN-16rA",
-    authDomain: "fit-for-fight-b28a1.firebaseapp.com",
-    projectId: "fit-for-fight-b28a1",
-    storageBucket: "fit-for-fight-b28a1.firebasestorage.app",
-    messagingSenderId: "815883203586",
-    appId: "1:815883203586:web:b18cd969ca6346aa5aa31b",
-    measurementId: "G-N6VX9Q7Y8F"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-
-  // --- Auth + Workout logs (Firestore) ---
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-  // expose auth state to non-module calendar code
-  window.isFsAuthed = false;
-  window.fsUid = null;
-
-  // Grab elements
-  const email = document.getElementById("email");
-  const pass  = document.getElementById("pass");
-  const signupBtn = document.getElementById("signup");
-  const loginBtn  = document.getElementById("login");
-  const logoutBtn = document.getElementById("logout");
-  const who   = document.getElementById("who");
-  const authBox = document.getElementById("authBox");
-  const logBox  = document.getElementById("logBox");
-  // FS Manager elements
-  const fsDayDate = document.getElementById('fsDayDate');
-  const fsDayTitle = document.getElementById('fsDayTitle');
-  const fsCreateDay = document.getElementById('fsCreateDay');
-  const fsDayList = document.getElementById('fsDayList');
-  const fsAddLog = document.getElementById('fsAddLog');
-  const fsLogList = document.getElementById('fsLogList');
-  const fsFilterLabel = document.getElementById('fsFilterLabel');
-  const fsLogsHeader = document.getElementById('fsLogsHeader');
-
-  // Log modal elements
-  const fsLogModal = document.getElementById('fsLogModal');
-  const fsLogTitle = document.getElementById('fsLogTitle');
-  const fsDate = document.getElementById('fsDate');
-  const fsExercise = document.getElementById('fsExercise');
-  const fsExercises = document.getElementById('fsExercises');
-  const fsReps = document.getElementById('fsReps');
-  const fsWeight = document.getElementById('fsWeight');
-  const fsTime = document.getElementById('fsTime');
-  const fsNotes = document.getElementById('fsNotes');
-  const fsTestDay = document.getElementById('fsTestDay');
-  const fsCancel = document.getElementById('fsCancel');
-  const fsSave = document.getElementById('fsSave');
-  const fsDelete = document.getElementById('fsDelete');
+// This script tag remains for backward compatibility if needed.
+// All Firebase-related logic has moved to app-firebase.js; utilities to utils.js.
+</script>
 
   if (signupBtn && loginBtn && logoutBtn) {
     // Auth actions
