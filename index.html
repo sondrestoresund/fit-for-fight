@@ -569,6 +569,10 @@
   window.addEventListener('DOMContentLoaded', () => {
     wireAuthUI();
 
+    // Ensure only one view is visible
+    const views = document.querySelectorAll('.view');
+    views.forEach(view => view.classList.remove('show'));
+
     // Show the login view by default if no hash is set
     const defaultView = document.getElementById('view-login');
     if (defaultView) {
@@ -582,6 +586,20 @@
       const evt = new Event('hashchange');
       window.dispatchEvent(evt);
     });
+  });
+
+  // Handle hash-based navigation
+  window.addEventListener('hashchange', () => {
+    const hash = location.hash || '#/login';
+    const views = document.querySelectorAll('.view');
+    views.forEach(view => view.classList.remove('show'));
+
+    const activeView = document.querySelector(`[id="view-${hash.replace('#/', '')}"]`);
+    if (activeView) {
+      activeView.classList.add('show');
+    } else {
+      document.getElementById('view-login').classList.add('show');
+    }
   });
 </script>
 </body>
