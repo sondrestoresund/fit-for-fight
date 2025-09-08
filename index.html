@@ -569,6 +569,12 @@
   window.addEventListener('DOMContentLoaded', () => {
     wireAuthUI();
 
+    // Show the login view by default if no hash is set
+    const defaultView = document.getElementById('view-login');
+    if (defaultView) {
+      defaultView.classList.add('show');
+    }
+
     // “Go to Account” button on the landing view
     document.getElementById('goToAccount')?.addEventListener('click', () => {
       location.hash = '#/account';
