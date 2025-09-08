@@ -551,8 +551,8 @@ const on=(sel,ev,fn,opts)=>{const el=$(sel); if(el) el.addEventListener(ev,fn,op
   function hashCode(s){ let h=0; for(let i=0;i<s.length;i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0; } return Math.abs(h); }
   function avatarHTML(name, uid){ const ini=((name||'U').trim()[0]||'U').toUpperCase(); const colors=['#2bd9b8','#6aa9ff','#f3c355','#ff6aa9','#79c389','#6fc2d0']; const idx=hashCode(String(uid||name||'x'))%colors.length; const bg=colors[idx]; return `<span class="avatar" style="background:${bg};color:#0b1311">${ini}</span>`; }
 // Toasts
-function showToast(msg){ try{ const t=document.createElement('div'); t.className='app-toast'; t.textContent=msg; document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 2200); }catch{} }
-function showToastAction(msg,label,action){ try{ const t=document.createElement('div'); t.className='app-toast'; const span=document.createElement('span'); span.textContent=msg; const a=document.createElement('span'); a.className='toast-act'; a.textContent=label; a.onclick=()=>{ try{ action?.(); }finally{ t.classList.remove('show'); setTimeout(()=>t.remove(),200);} }; t.appendChild(span); t.appendChild(a); document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 4000); }catch{} }
+function showToast(msg){ try{ const t=document.createElement('div'); t.className='app-toast'; t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); t.textContent=msg; document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 2200); }catch{} }
+function showToastAction(msg,label,action){ try{ const t=document.createElement('div'); t.className='app-toast'; t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); const span=document.createElement('span'); span.textContent=msg; const a=document.createElement('span'); a.className='toast-act'; a.textContent=label; a.onclick=()=>{ try{ action?.(); }finally{ t.classList.remove('show'); setTimeout(()=>t.remove(),200);} }; t.appendChild(span); t.appendChild(a); document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, 4000); }catch{} }
 // Deep-link helpers
 function inviteLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}`; }
 function inviteAutoLink(){ const path=`${location.origin}${location.pathname}`; return `${path}#/fireteam?code=${inviteCode()}&auto=1`; }
@@ -980,8 +980,15 @@ function inchesToCm(inch){return Math.round(inch*2.54)}
 function mk(cat,name,unit,dir,key){const spec=BASE[key]; const age=Number(state.profile?.age||30); const sex=(state.profile?.sex)||'male'; const lvls=spec.levels.map(v=>scaleByProfile(v,spec.type,age,sex)); // unit conversions
   if(key==='long_jump_in'){ for(let i=0;i<lvls.length;i++) lvls[i]=inchesToCm(lvls[i]); }
   const [prospect,standard,strong,elite,maxv]=lvls; return {cat,name,unit,dir,prospect,std:standard,strong,elite,max:maxv}; }
+// Cache buildModel by key that depends on age/sex/unit
+let MODEL_CACHE={key:null,model:[]};
 function buildModel(){
-  return [
+  const age=Number(state.profile?.age||30);
+  const sex=(state.profile?.sex)||'male';
+  const unitSystem=(state.profile?.unitSystem)||'imperial';
+  const key=`${age}|${sex}|${unitSystem}`;
+  if(MODEL_CACHE.key===key && MODEL_CACHE.model?.length){ return MODEL_CACHE.model; }
+  const model = [
     mk("Upper Body","Pull-ups (strict, dead-hang)","reps","higher","pullups"),
     mk("Upper Body","Push-ups (strict, nonstop)","reps","higher","pushups"),
     mk("Upper Body","Barbell Bench Press (xBW for 2–5 reps)","xBW","higher","bench_ratio"),
@@ -997,6 +1004,8 @@ function buildModel(){
     mk("Load & Work Capacity","Deadlift (xBW for 8 reps)","xBW","higher","deadlift_r"),
     mk("Load & Work Capacity","Squat (xBW for 8 reps)","xBW","higher","squat_r"),
   ];
+  MODEL_CACHE={key,model};
+  return model;
 }
 
 /* Scoring */
@@ -1424,7 +1433,42 @@ function showTestStep(){
   testBody.innerHTML=`<div class="panel"><h2>${row.name}</h2><div class="grid grid-3" style="margin-top:8px"><div><div class="badge b-prospect">Prospect: ${fmtTarget(row,row.prospect)}</div></div><div><div class="badge b-std">Standard: ${fmtTarget(row,row.std)}</div></div><div><div class="badge b-elite">Elite: ${fmtTarget(row,row.elite)}</div></div></div><label style="margin-top:10px">Enter your result</label>${timeInputs}</div>`;
   const nextBtn=$("#testNext"); nextBtn.textContent=(testIdx===testRows.length-1)?"Complete Test":"Next";
 }
-function finishTest(){if(!testResults.length){testModal.style.display="none";return;} state.logs.push(...testResults); const avg=Math.round(testResults.reduce((s,x)=>s+(x.pts||0),0)/testResults.length); const session={id:"s_"+Math.random().toString(36).slice(2,9),date:todayISO(),entries:testResults,avgPts:avg}; state.sessions=[...(state.sessions||[]),session]; saveUserData(activeUID(),state); testBody.innerHTML=`<div class="panel"><h2>Summary</h2><p class="muted">Average points: <b>${avg}</b> across ${testResults.length} exercises.</p><div style="margin-top:10px"><button class="btn" id="testDone">Close</button></div></div>`; $("#testDone").addEventListener("click",()=>{testModal.style.display="none";renderHome();renderProgress();renderBenchmarks()})}
+async function finishTest(){
+  if(!testResults.length){testModal.style.display="none";return;}
+  state.logs.push(...testResults);
+  const avg=Math.round(testResults.reduce((s,x)=>s+(x.pts||0),0)/testResults.length);
+  const session={id:"s_"+Math.random().toString(36).slice(2,9),date:todayISO(),entries:testResults,avgPts:avg};
+  state.sessions=[...(state.sessions||[]),session]; saveUserData(activeUID(),state);
+  // If signed in, persist to Firestore in batch
+  try{
+    if(window.isFsAuthed){
+      const uid=window.fsUid; const batch=writeBatch(db);
+      // Create a testDay doc
+      const tdRef = await addDoc(daysCol(uid), { date: new Date(session.date), title: 'Test Day', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      // Map entries to logs
+      for(const entry of testResults){
+        const name = (entry.label||'').split(' — ')[1]||entry.label||'Exercise';
+        const payload={
+          date:new Date(entry.date),
+          exercise:name,
+          reps: entry.unit==='reps' ? entry.value : null,
+          weight: null,
+          timeSec: entry.unit==='sec' ? entry.value : null,
+          notes: '',
+          testDayId: tdRef.id,
+          createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+        };
+        const ref = doc(logsCol(uid));
+        batch.set(ref,payload);
+      }
+      await batch.commit();
+      try{ await refreshFs(); }catch{}
+    }
+  }catch{}
+  testBody.innerHTML=`<div class="panel"><h2>Summary</h2><p class="muted">Average points: <b>${avg}</b> across ${testResults.length} exercises.</p><div style="margin-top:10px"><button class="btn" id="testDone">Close</button></div></div>`;
+  showToast('Test Day saved');
+  $("#testDone").addEventListener("click",()=>{testModal.style.display="none";renderHome();renderProgress();renderBenchmarks()})
+}
 
 /* Progress */
 let PROG_CHART;
@@ -1474,6 +1518,7 @@ async function renderFireteam(){
     fl.innerHTML='';
     const friends = uids.filter(u=>u!==me);
     if(!friends.length){ const li=document.createElement('li'); li.className='muted'; li.textContent='No friends yet.'; fl.appendChild(li); }
+    friends.sort((u1,u2)=>{ const a=(docs.find(x=>x.uid===u1)?.doc?.name||'').toLowerCase(); const b=(docs.find(x=>x.uid===u2)?.doc?.name||'').toLowerCase(); return a.localeCompare(b); });
     friends.forEach(uid=>{
       const d=(docs.find(x=>x.uid===uid)?.doc)||{}; const name=d?.name||uid.slice(0,6);
       const li=document.createElement('li'); li.className='panel'; li.style.padding='8px'; li.style.display='flex'; li.style.justifyContent='space-between'; li.style.alignItems='center';
@@ -1488,7 +1533,10 @@ async function renderFireteam(){
   items.sort((a,b)=>b.date.localeCompare(a.date));
   items.slice(0,20).forEach(it=>{const chip=document.createElement('div'); chip.className='chip-sm'; const val= it.unit==='sec'?fmtSecs(it.value):(it.unit==='xBW'?Number(it.value).toFixed(2):String(it.value)); chip.innerHTML=`${avatarHTML(it.name,it.uid)}<span>${it.name} • PR: ${it.label} • ${val} • ${fmtDate(it.date)}</span>`; feed.appendChild(chip)});
   // Compare list (names from directory/public)
-  const cmp=$("#compareWith"); cmp.innerHTML = docs.filter(d=>d.uid!==me).map(({uid,doc})=>`<option value="${uid}">${doc?.name||'Friend'}</option>`).join('');
+  const cmp=$("#compareWith"); cmp.innerHTML = docs.filter(d=>d.uid!==me).sort((a,b)=>{
+    const an=(a.doc?.name||'').toLowerCase(), bn=(b.doc?.name||'').toLowerCase();
+    return an.localeCompare(bn);
+  }).map(({uid,doc})=>`<option value="${uid}">${doc?.name||'Friend'}</option>`).join('');
   cmp.addEventListener('change',()=>renderCompare(cmp.value),{once:true}); if(cmp.value) renderCompare(cmp.value);
 }
 async function renderCompare(uid){
@@ -1575,8 +1623,9 @@ function drawCalendar(){
     const has = sessions.find(s=>s.date===dateStr);
     const dayMatch = (x)=>{ const dt=new Date(x.date?.toDate?x.date.toDate():x.date); return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; };
     const fsDay = FSDAYS.find(dayMatch);
-    const logsCountFS = FSLOGS.filter(l=>{ const dt=new Date(l.date?.toDate?l.date.toDate():l.date); if(isNaN(dt)) return false; return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; }).length;
-    const logsCountLocal = (state.logs||[]).filter(l=>{ const dt=new Date(l.date); if(isNaN(dt)) return false; return dt.getFullYear()===year && dt.getMonth()===month && dt.getDate()===d; }).length;
+    const logsCountFS = FSLOGS.filter(l=>{ const dt=new Date(l.date?.toDate?l.date.toDate():l.date); if(isNaN(dt)) return false; // normalize to local midnight
+      const Y=dt.getFullYear(), M=dt.getMonth(), D=dt.getDate(); return Y===year && M===month && D===d; }).length;
+    const logsCountLocal = (state.logs||[]).filter(l=>{ const dt=new Date(l.date+'T00:00:00'); if(isNaN(dt)) return false; const Y=dt.getFullYear(), M=dt.getMonth(), D=dt.getDate(); return Y===year && M===month && D===d; }).length;
     const logsCount = logsCountFS + logsCountLocal;
 
     const tag = has || fsDay ? '<span class="badge b-strong">Test</span>' : (logsCount?`<span class="badge">${logsCount} logs</span>`:'');
@@ -1673,9 +1722,10 @@ $("#navTabs").addEventListener("click",(e)=>{const btn=e.target.closest("[data-r
   // Add Squad CTA on Home
   on('#ctaAddSquad','click',()=>{ location.hash='#/fireteam'; setTimeout(()=>$('#friendCode')?.focus(), 250); });
   // Invite code actions
-  on('#copyInvite','click',async ()=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); showToastAction('Invite code copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
-  on('#copyInviteLink','click',async ()=>{ const link=inviteLink(); try{ await navigator.clipboard.writeText(link); showToastAction('Invite link copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
-  on('#copyInviteAutoLink','click',async ()=>{ const link=inviteAutoLink(); try{ await navigator.clipboard.writeText(link); showToastAction('Auto-invite link copied', 'Open Squad', ()=>{ location.hash=`#/fireteam?code=${inviteCode()}&auto=1`; }); }catch{ showToast('Copy failed'); } });
+  function showBtnTick(btn){ try{ const s=document.createElement('span'); s.textContent='✓'; s.style.marginLeft='6px'; s.style.color='#2bd9b8'; s.style.fontWeight='800'; btn.appendChild(s); setTimeout(()=>s.remove(),1000);}catch{} }
+  on('#copyInvite','click',async (e)=>{ const code=inviteCode(); try{ await navigator.clipboard.writeText(code); showBtnTick(e.currentTarget); showToastAction('Invite code copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
+  on('#copyInviteLink','click',async (e)=>{ const link=inviteLink(); try{ await navigator.clipboard.writeText(link); showBtnTick(e.currentTarget); showToastAction('Invite link copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); }catch{ showToast('Copy failed'); } });
+  on('#copyInviteAutoLink','click',async (e)=>{ const link=inviteAutoLink(); try{ await navigator.clipboard.writeText(link); showBtnTick(e.currentTarget); showToastAction('Auto-invite link copied', 'Open Squad', ()=>{ location.hash=`#/fireteam?code=${inviteCode()}&auto=1`; }); }catch{ showToast('Copy failed'); } });
   on('#shareInvite','click',async ()=>{ const code=inviteCode(); const link=inviteLink(); const shareData={title:'Fit For Fight', text:`Add me on Fit For Fight. Invite Code: ${code}`, url: link}; try{ if(navigator.share){ await navigator.share(shareData); } else { await navigator.clipboard.writeText(`${shareData.text} — ${shareData.url}`); showToastAction('Share text copied', 'Open Squad', ()=>{ location.hash='#/fireteam'; }); } }catch{} });
   // Invite by Email in Squad
   on('#inviteByEmail','click',async ()=>{
@@ -1810,7 +1860,7 @@ document.addEventListener('click',e=>{
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
   import {
     getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
-    getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot
+    getDocs, getDoc, query, where, orderBy, serverTimestamp, limit, onSnapshot, writeBatch
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
@@ -1920,13 +1970,16 @@ document.addEventListener('click',e=>{
   async function ensureDirectory(user){
     if(!user) return;
     const ref = doc(db,'directory',user.uid);
-    await setDoc(ref,{
+    let exists=false; try{ const s=await getDoc(ref); exists=s.exists(); }catch{}
+    const payload={
       uid:user.uid,
       emailLower:(user.email||'').toLowerCase(),
+      displayName:(loadUserData(user.uid)?.profile?.name) || (user.email||'').split('@')[0] || 'User',
       name:(loadUserData(user.uid)?.profile?.name) || (user.email||'').split('@')[0] || 'User',
       updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp()
-    },{merge:true});
+    };
+    if(!exists) payload.createdAt=serverTimestamp();
+    await setDoc(ref,payload,{merge:true});
   }
   async function findUidByEmail(email){
     const emailLower=String(email||'').toLowerCase();
@@ -2115,6 +2168,13 @@ document.addEventListener('click',e=>{
   if(fsCreateDay){ fsCreateDay.onclick=async()=>{ const user=auth.currentUser; if(!user) return alert('Log in first'); const date=fsDayDate?.value||new Date().toISOString().slice(0,10); const title=fsDayTitle?.value||'Test Day'; await createTestDay(user.uid,{date,title}); fsDayTitle.value=''; await refreshFs(); } }
   const fsClearFilterBtn = document.getElementById('fsClearFilter');
   if(fsClearFilterBtn){ fsClearFilterBtn.onclick=()=>{ FS.currentDayId=null; FS.dateFilter=null; renderFs(); } }
+  // Modal accessibility: trap focus + ESC
+  function enhanceModal(id, closeSel){
+    const m=document.getElementById(id); if(!m) return; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true');
+    m.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const c=closeSel?m.querySelector(closeSel):null; if(c) c.click(); else m.style.display='none'; }});
+    m.addEventListener('keydown',e=>{ if(e.key!=='Tab') return; const f=[...m.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.offsetParent!==null); if(!f.length) return; const first=f[0], last=f[f.length-1]; if(e.shiftKey && document.activeElement===first){ last.focus(); e.preventDefault(); } else if(!e.shiftKey && document.activeElement===last){ first.focus(); e.preventDefault(); } });
+  }
+  ['logModal','testModal','pickerModal','infoModal'].forEach(id=>enhanceModal(id));
   if(fsDayList){ fsDayList.addEventListener('click',async e=>{ const btn=e.target.closest('button'); if(!btn) return; const id=btn.dataset.id; const user=auth.currentUser; if(!user) return; const act=btn.dataset.act; if(act==='open'){ FS.currentDayId = id; renderFs(); } else if(act==='rename'){ const cur=FS.days.find(d=>d.id===id); const title=prompt('New title', cur?.title||'Test Day'); if(title!=null){ await updateTestDay(user.uid,id,{title}); await refreshFs(); } } else if(act==='delete'){ if(confirm('Delete this Test Day? Logs will remain (unlinked).')){ await deleteTestDay(user.uid,id); if(FS.currentDayId===id) FS.currentDayId=null; await refreshFs(); showToast('Test Day deleted'); } } }); }
   if(fsAddLog){ fsAddLog.onclick=()=>{ openFsLogModal(); } }
   // Remove friend from list
@@ -2146,6 +2206,9 @@ document.addEventListener('click',e=>{
   window.refreshFs = refreshFs;
   if(fsCancel){ fsCancel.onclick=()=>{ fsLogModal.style.display='none'; } }
   if(fsLogModal){ fsLogModal.addEventListener('click',e=>{ if(e.target===fsLogModal) fsLogModal.style.display='none'; }); }
+  // Keyboard enter handlers for friend inputs
+  on('#friendCode','keydown',e=>{ if(e.key==='Enter'){ document.getElementById('addFriend')?.click(); }});
+  on('#friendEmail','keydown',e=>{ if(e.key==='Enter'){ document.getElementById('inviteByEmail')?.click(); }});
   if(fsSave){ fsSave.onclick=async()=>{
     const user=auth.currentUser; if(!user) return alert('Log in first');
     const payload={
@@ -2192,6 +2255,12 @@ document.addEventListener('click',e=>{
       authBox.querySelectorAll("input,button").forEach(el => { el.disabled = false; });
       if (fsLogList) fsLogList.innerHTML = "";
       FS_LOGS=[];
+      // Unsubscribe realtime listeners and clear caches
+      try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{}
+      FRIENDS_UNSUB=null;
+      try{ Object.values(PUB_UNSUBS||{}).forEach(u=>u&&u()); }catch{}
+      for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k];
+      for(const k in PUB_CACHE) delete PUB_CACHE[k];
       try{ renderBenchmarks(); renderHome(); renderProgress(); }catch{}
       try{ window.navigate && window.navigate("#/login"); }catch{}
     }
