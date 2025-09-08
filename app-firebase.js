@@ -5,6 +5,9 @@ import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, setDoc, ge
 import { toTimestamp, parseTime, numOrNull, showToast, showToastAction } from './utils.js';
 import { loadUserData, saveUserData } from './core-state.js';
 import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
+import { renderFireteam } from './fireteam.js';
+import { loadUserData, saveUserData } from './core-state.js';
+import { buildModel, standardsFromModel, computeHeadlineScores } from './model.js';
 
 // Firebase config
 const firebaseConfig = {
@@ -90,8 +93,8 @@ async function publishPublicSummary(){ const user=auth.currentUser; if(!user) re
 
 // Realtime squad subscriptions
 const PUB_CACHE = {}; const PUB_UNSUBS = {}; let FRIENDS_UNSUB=null; window.PUB_CACHE = PUB_CACHE; // reuse in classic code
-function resubscribePublic(ids){ const set=new Set(ids); Object.keys(PUB_UNSUBS).forEach(uid=>{ if(!set.has(uid)){ try{ PUB_UNSUBS[uid](); }catch{} delete PUB_UNSUBS[uid]; delete PUB_CACHE[uid]; } }); ids.forEach(uid=>{ if(PUB_UNSUBS[uid]) return; PUB_UNSUBS[uid] = onSnapshot(pubDoc(uid),(snap)=>{ PUB_CACHE[uid]=snap.exists()?snap.data():null; try{ window.renderFireteam?.(); }catch{} }); }); }
-function setupSquadRealtime(){ try{ Object.values(PUB_UNSUBS).forEach(u=>u()); }catch{} for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k]; try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{} FRIENDS_UNSUB=null; const user=auth.currentUser; if(!user) return; FRIENDS_UNSUB = onSnapshot(friendsCol(user.uid),(snap)=>{ const ids=snap.docs.map(d=>d.id); let s=loadUserData(user.uid)||{}; s.fireteam=s.fireteam||{}; s.fireteam.friends=ids; saveUserData(user.uid,s); resubscribePublic([user.uid,...ids]); try{ window.renderFireteam?.(); }catch{} }); resubscribePublic([user.uid,...((loadUserData(user.uid)||{}).fireteam?.friends||[])]); }
+function resubscribePublic(ids){ const set=new Set(ids); Object.keys(PUB_UNSUBS).forEach(uid=>{ if(!set.has(uid)){ try{ PUB_UNSUBS[uid](); }catch{} delete PUB_UNSUBS[uid]; delete PUB_CACHE[uid]; } }); ids.forEach(uid=>{ if(PUB_UNSUBS[uid]) return; PUB_UNSUBS[uid] = onSnapshot(pubDoc(uid),(snap)=>{ PUB_CACHE[uid]=snap.exists()?snap.data():null; try{ renderFireteam(); }catch{} }); }); }
+function setupSquadRealtime(){ try{ Object.values(PUB_UNSUBS).forEach(u=>u()); }catch{} for(const k in PUB_UNSUBS) delete PUB_UNSUBS[k]; try{ FRIENDS_UNSUB && FRIENDS_UNSUB(); }catch{} FRIENDS_UNSUB=null; const user=auth.currentUser; if(!user) return; FRIENDS_UNSUB = onSnapshot(friendsCol(user.uid),(snap)=>{ const ids=snap.docs.map(d=>d.id); let s=loadUserData(user.uid)||{}; s.fireteam=s.fireteam||{}; s.fireteam.friends=ids; saveUserData(user.uid,s); resubscribePublic([user.uid,...ids]); try{ renderFireteam(); }catch{} }); resubscribePublic([user.uid,...((loadUserData(user.uid)||{}).fireteam?.friends||[])]); }
 
 // Local FS state
 const FS={ user:null, days:[], logs:[], currentDayId:null, dateFilter:null, editingLogId:null };

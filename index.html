@@ -541,7 +541,12 @@
 </div></div>
 <div id="levelsToast"><div style="font:700 12px 'Roboto Condensed';letter-spacing:.3px;text-transform:uppercase;color:#95a1b1">New here?</div><div style="margin-top:4px">Wondering what each level means? <a href="#" id="levelsOpenLink" style="color:#2db9a2;text-decoration:none">See Levels</a></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button id="levelsDismiss" class="rowbtn" style="padding:6px 10px">Dismiss</button></div></div>
 
-<script>
+<script type="module">
+import { renderFireteam, renderCompare } from './fireteam.js';
+import { renderProgress, drawCalendar, drawProgChart } from './progress.js';
+import { loadUserData, saveUserData, state, activeUID, ensureFireteam, inviteCode, fireteamFriends, dataKeyFor, dedupe } from './core-state.js';
+import { buildModel, filterRows, bestFor, tierAndPoints5, bandForTier, exerciseKey, nameToKey, standardsFromModel, computeHeadlineScores, SCORE_SETS } from './model.js';
+import { showToast, showToastAction } from './utils.js';
 /* Helpers */
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
 // Safe event binder: no-op if element missing
@@ -1656,7 +1661,6 @@ document.addEventListener('click',e=>{
 <script type="module" src="app-firebase.js"></script>
 <script type="module" src="fireteam.js"></script>
 <script type="module" src="progress.js"></script>
-<script type="module" src="bootstrap.js"></script>
 <!-- Legacy inline module removed; see app-firebase.js -->
 <script type="module">
 // This script tag remains for backward compatibility if needed.
